@@ -8,6 +8,7 @@ from cryptography.hazmat.primitives.serialization.pkcs12 import load_key_and_cer
 from datetime import datetime
 from model import Cert, CertVersion, Secret, SecretVersion
 from pytz import timezone
+from log import log
 
 # example
 # https://github.com/Azure/azure-sdk-for-python/blob/main/sdk/keyvault/azure-keyvault-certificates/samples/parse_certificate.py
@@ -43,13 +44,12 @@ class VaultManager:
 
                 # check expiring
                 if not cert_policy.exportable:
-                     # TODO: log
+                     log.warn(f'Cert {cert.name} of version {version.version} is marked Not Exportable, ignoring')
                      continue
                 if self._is_cert_expired(version.expires_on):
-                     # TODO: log
+                     log.warn(f'Cert {cert.name} of version {version.version} is expired, ignoring')
                      continue
                 
-
                 private_key_b64 = self.src_secret_client.get_secret(version.name, version.version).value
 
                 private_key_b64_decoded = base64.b64decode(private_key_b64)
@@ -96,10 +96,10 @@ class VaultManager:
                 continue
 
             for version in self.src_secret_client.list_properties_of_secret_versions(secret.name):
-                 
+                
                 secret_value  = self.src_secret_client.get_secret(version.name, version.version).value
 
-                sv = SecretVersion(version.version, secret_value, version.expires_on, version.created_on, version.tags)
+                sv = SecretVersion(version.version, secret_value, version.content_type, version.expires_on, version.created_on, version.enabled, version.tags)
 
                 vault_secret.versions.append(sv)
 
@@ -109,22 +109,44 @@ class VaultManager:
             result.append(vault_secret)
 
         return result
-
-
-            
-        
-
-
-
-
-
     
+
+    def import_certs(self, certs: list[Cert]):
+         
+         for cert in certs:
+              for version in cert.versions:
+                    log.info(f'importing cert: {cert.name} version: {version.version}')
+                    
+                    self.dest_cert_client.import_certificate(cert.name, version.cert, enabled=version.enable, tags=version.tags)
+
+                    log.info(f'Cert: {cert.name} version: {version.version} imported successfully')
+
+
+    def import_secrets(self, secrets: list[Secret]):
+         for secret in secrets:
+              for version in secret.versions:
+                   log.info(f'importing secret: {secret.name} version: {version.version}')
+
+                   self.dest_secret_client.set_secret(secret.name, 
+                                                      version.value,
+                                                      content_type=version.content_type,
+                                                      enabled=version.enabled,
+                                                      expires_on=version.expires_on, 
+                                                      tags=version.tags)
+
+                   log.info(f'Secret: {secret.name} version: {version.version} imported successfully')
+        
     def _is_cert_expired(self, expires_on):
          
-         if datetime.now().astimezone(timezone('Asia/Kuala_Lumpur')) >= expires_on.astimezone(timezone('Asia/Kuala_Lumpur')):
+         if self._as_utc_8(datetime.now()) >= self._as_utc_8(expires_on):
               return True
          return False
+
+
+    def _as_utc_8(self, d: datetime):
+         return d.astimezone(timezone('Asia/Kuala_Lumpur'))
                 
+
                 
 #                public_key_bytes = '' #public_key_b64.encode() #base64.b64decode(public_key_b64)
 
