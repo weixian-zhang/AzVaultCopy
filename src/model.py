@@ -20,11 +20,13 @@ class Cert:
         self.tags = tags if tags else {}
 
 class SecretVersion:
-    def __init__(self, version, value, expires_on, created_on, tags) -> None:
+    def __init__(self, version, value, content_type, expires_on, created_on, enabled, tags) -> None:
         self.version = version
         self.value = value
+        self.content_type = content_type
         self.expires_on = expires_on
         self.created_on = created_on
+        self.enabled= enabled
         self.tags = tags if tags else {}
 
 class Secret:
@@ -36,14 +38,14 @@ class Secret:
 class SourceKeyVault:
 
     def __init__(self) -> None:
-        self.name = ''
-        self.url = ''
-        self.subscription_id = ''
-        self.resource_group = ''
+        # self.name = ''
+        # self.url = ''
+        # self.subscription_id = ''
+        # self.resource_group = ''
         self.secrets : list[Secret] = []
         self.certs : list[Cert] = []
 
-class RunContext:
-    def __init__(self) -> None:
-        self.started_on: datetime = None
-        self.source_vault = None
+# class RunContext:
+#     def __init__(self) -> None:
+#         self.started_on: datetime = datetime.now()
+#         self.source_vault = None
