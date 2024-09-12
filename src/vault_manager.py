@@ -1,14 +1,13 @@
 from azure.identity import DefaultAzureCredential
 from azure.keyvault.certificates import CertificateClient, CertificatePolicy
 from azure.keyvault.secrets import SecretClient
-from azure.keyvault.keys import KeyClient
 from config import Config
 import base64 
-import jwt
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.serialization import pkcs12
 from cryptography.hazmat.primitives.serialization import Encoding, PrivateFormat, NoEncryption
 from cryptography.hazmat.primitives.serialization.pkcs12 import load_key_and_certificates
+from datetime import datetime
+from model import Cert, CertVersion, Secret, SecretVersion
+from pytz import timezone
 
 # example
 # https://github.com/Azure/azure-sdk-for-python/blob/main/sdk/keyvault/azure-keyvault-certificates/samples/parse_certificate.py
@@ -20,52 +19,111 @@ class VaultManager:
 
         self.src_cert_client = CertificateClient(config.get_src_vault_url(), config.source_azure_cred)
         self.src_secret_client = SecretClient(config.get_src_vault_url(), config.source_azure_cred)
-        self.src_key_client = KeyClient(config.get_src_vault_url(), config.source_azure_cred)
+        #self.src_key_client = KeyClient(config.get_src_vault_url(), config.source_azure_cred)
 
         self.dest_cert_client = CertificateClient(config.get_dest_vault_url(), config.dest_azure_cred)
         self.dest_secret_client = SecretClient(config.get_dest_vault_url(), config.dest_azure_cred)
 
+    
+    def list_certs(self) -> list[Cert]:
+        """
+        return: list[Cert] will be sorted with "created_on" so that during import,
+        oldest will be created first and the last item will be the latest current version in destination vault
+        """
+
+        result = []
+
         for cert_prop in self.src_cert_client.list_properties_of_certificates():
 
+            cert = Cert(cert_prop.name, cert_prop.tags)
+
             for version in self.src_cert_client.list_properties_of_certificate_versions(cert_prop.name):
+                
+                cert_policy = self.src_cert_client.get_certificate_policy(cert_prop.name)
 
                 # check expiring
-                # check non-exportable
-
-                cert = self.src_cert_client.get_certificate_version(cert_prop.name, version.version)
-
-                #public_key_b64 = base64.b64encode(cert.cer).decode('utf-8')
-
-                cert_policy = self.src_cert_client.get_certificate_policy(cert_prop.name)
-                
-                
-                # get public key
-                #public_key = self.src_key_client.get_key(version.name, version.version)
+                if not cert_policy.exportable:
+                     # TODO: log
+                     continue
+                if self._is_cert_expired(version.expires_on):
+                     # TODO: log
+                     continue
                 
 
                 private_key_b64 = self.src_secret_client.get_secret(version.name, version.version).value
 
-                private_key_bytes = base64.b64decode(private_key_b64)
+                private_key_b64_decoded = base64.b64decode(private_key_b64)
                 
                 private_key, public_certificate, additional_certificates = load_key_and_certificates(
-                    data=private_key_bytes,
+                    data=private_key_b64_decoded,
                     password=None
                 )
+                
+                public_key_bytes = public_certificate.public_bytes(Encoding.PEM)
+                private_key_bytes = private_key.private_bytes(Encoding.PEM, PrivateFormat.PKCS8, NoEncryption())
+                additional_cert_bytes = b''
+                for ca in additional_certificates:
+                        additional_cert_bytes += ca.public_bytes(Encoding.PEM)
 
-                file_name = f'C:\\Users\\weixzha\\Desktop\\{version.name}_{version.version}.pem'
-                with open(file_name, 'wb') as pem_file:
-                    pem_file.write(private_key.private_bytes(Encoding.PEM, PrivateFormat.PKCS8, NoEncryption()))
-                    pem_file.write(public_certificate.public_bytes(Encoding.PEM))
-                    for ca in additional_certificates:
-                        pem_file.write(ca.public_bytes(Encoding.PEM))
+                cert_bytes = public_key_bytes + private_key_bytes + additional_cert_bytes
 
-                with open(file_name, "rb") as f:
-                    pfx_cert_bytes = f.read()
+                cv = CertVersion(version.version, version.expires_on, version.created_on, version.enabled, version.tags)
+                cv.public_key = public_key_bytes
+                cv.private_key = private_key_bytes
+                cv.cert =  cert_bytes
 
-                    try:
-                        self.dest_cert_client.import_certificate(version.name, pfx_cert_bytes)
-                    except Exception as e:
-                        pass
+                cert.versions.append(cv)
+
+
+            cert.versions = sorted(cert.versions, key=lambda x: x.created_on)
+            result.append(cert)
+
+        return result
+    
+
+    def list_secrets(self) -> list[Secret]:
+        """
+        will ignore secret.content_type == 'application/x-pkcs12' created by certificates to store private key
+        """
+        
+        result = []
+
+        for secret in self.src_secret_client.list_properties_of_secrets():
+
+            vault_secret = Secret(secret.name, secret.tags)
+
+            if not secret.enabled or secret.content_type == 'application/x-pkcs12':
+                continue
+
+            for version in self.src_secret_client.list_properties_of_secret_versions(secret.name):
+                 
+                secret_value  = self.src_secret_client.get_secret(version.name, version.version).value
+
+                sv = SecretVersion(version.version, secret_value, version.expires_on, version.created_on, version.tags)
+
+                vault_secret.versions.append(sv)
+
+            
+            vault_secret.versions = sorted(vault_secret.versions, key = lambda x: x.created_on)
+
+            result.append(vault_secret)
+
+        return result
+
+
+            
+        
+
+
+
+
+
+    
+    def _is_cert_expired(self, expires_on):
+         
+         if datetime.now().astimezone(timezone('Asia/Kuala_Lumpur')) >= expires_on.astimezone(timezone('Asia/Kuala_Lumpur')):
+              return True
+         return False
                 
                 
 #                public_key_bytes = '' #public_key_b64.encode() #base64.b64decode(public_key_b64)
