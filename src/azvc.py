@@ -9,7 +9,6 @@ from azcred import ExistingTokenCredential
 config = Config()
 config.init_azure_cred()
 
-vm = VaultManager(config)
 
 if __name__ == '__main__':
     pass
