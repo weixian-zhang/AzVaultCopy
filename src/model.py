@@ -37,13 +37,18 @@ class Secret:
 
 class SourceKeyVault:
 
-    def __init__(self) -> None:
-        # self.name = ''
-        # self.url = ''
-        # self.subscription_id = ''
-        # self.resource_group = ''
+    def __init__(self, name) -> None:
+        self.name = name
         self.secrets : list[Secret] = []
         self.certs : list[Cert] = []
+
+class DestinationVault:
+    def __init__(self, name) -> None:
+        self.name = name
+        self.cert_names = set()
+        self.secret_names = set()
+        self.deleted_cert_names = set()
+        self.deleted_secret_names = set()
 
 # class RunContext:
 #     def __init__(self) -> None:

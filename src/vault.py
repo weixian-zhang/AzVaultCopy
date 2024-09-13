@@ -1,12 +1,12 @@
 from azure.identity import DefaultAzureCredential
-from azure.keyvault.certificates import CertificateClient, CertificatePolicy
+from azure.keyvault.certificates import CertificateClient
 from azure.keyvault.secrets import SecretClient
 from config import Config
 import base64 
 from cryptography.hazmat.primitives.serialization import Encoding, PrivateFormat, NoEncryption
 from cryptography.hazmat.primitives.serialization.pkcs12 import load_key_and_certificates
 from datetime import datetime
-from model import Cert, CertVersion, Secret, SecretVersion
+from model import Cert, CertVersion, Secret, SecretVersion, SourceKeyVault, DestinationVault
 from pytz import timezone
 from log import log
 
@@ -15,22 +15,23 @@ from log import log
 # https://stackoverflow.com/questions/58313018/how-to-get-private-key-from-certificate-in-an-azure-key-vault
 class VaultManager:
     
-    def __init__(self, config: Config,) -> None:
+    def __init__(self, config: Config) -> None:
         self.config = config
 
         self.src_cert_client = CertificateClient(config.get_src_vault_url(), config.source_azure_cred)
         self.src_secret_client = SecretClient(config.get_src_vault_url(), config.source_azure_cred)
-        #self.src_key_client = KeyClient(config.get_src_vault_url(), config.source_azure_cred)
 
         self.dest_cert_client = CertificateClient(config.get_dest_vault_url(), config.dest_azure_cred)
         self.dest_secret_client = SecretClient(config.get_dest_vault_url(), config.dest_azure_cred)
 
     
-    def list_certs(self) -> list[Cert]:
+    def list_certs_from_src_vault(self) -> list[Cert]:
         """
         return: list[Cert] will be sorted with "created_on" so that during import,
         oldest will be created first and the last item will be the latest current version in destination vault
         """
+
+        log.info('begin export certs')
 
         result = []
 
@@ -78,14 +79,18 @@ class VaultManager:
             cert.versions = sorted(cert.versions, key=lambda x: x.created_on)
             result.append(cert)
 
+        log.info('export certs completed')
+
         return result
     
 
-    def list_secrets(self) -> list[Secret]:
+    def list_secrets_from_src_vault(self) -> list[Secret]:
         """
         will ignore secret.content_type == 'application/x-pkcs12' created by certificates to store private key
         """
         
+        log.info('begin export secrets')
+
         result = []
 
         for secret in self.src_secret_client.list_properties_of_secrets():
@@ -108,22 +113,86 @@ class VaultManager:
 
             result.append(vault_secret)
 
+        log.info('export secrets completed')
+
         return result
     
 
-    def import_certs(self, certs: list[Cert]):
+    def list_certs_from_dest_vault(self) -> list[set, set]:
+         """
+         returns 2 sets containing certs and deleted certs
+         """
+
+         log.info('exporting certs from dest vault')
+
+         certs, deleted = set(), set()
+
+         for c in self.dest_cert_client.list_properties_of_certificates():
+              certs.add(c.name)
+
+         for dc in self.dest_cert_client.list_deleted_certificates():
+              deleted.add(dc.name)
          
-         for cert in certs:
-              for version in cert.versions:
-                    log.info(f'importing cert: {cert.name} version: {version.version}')
-                    
-                    self.dest_cert_client.import_certificate(cert.name, version.cert, enabled=version.enable, tags=version.tags)
+         log.info('export dest certs completed')
 
-                    log.info(f'Cert: {cert.name} version: {version.version} imported successfully')
+         return certs, deleted
+    
+
+    def list_secrets_from_dest_vault(self) -> list[set, set]:
+         """
+         returns 2 sets containing secrets and deleted secrets
+         """
+         
+         log.info('exporting secrets from dest vault')
+
+         secrets, deleted = set(), set()
+
+         for s in self.dest_secret_client.list_properties_of_secrets():
+              secrets.add(s.name)
+
+         for ds in self.dest_secret_client.list_deleted_secrets():
+              deleted.add(ds.name)
+         
+         log.info('export dest secrets completed')
+
+         return secrets, deleted
+    
+
+    def import_certs(self, src_vault: SourceKeyVault, dest_vault: DestinationVault):
+         """
+         - import will be ignored if dest vault contains a deleted object with same name
+         - if dest vault contains same object name, and --ignore-import-if-exists is set to True, 
+           will import object to dest vault causing a new version to be created
+         """
+         
+         for cert in src_vault.certs:
+
+            if cert.name in dest_vault.deleted_cert_names:
+              log.warn(f'cert {cert.name} is found deleted in dest vault {dest_vault.name}, import is ignored')
+              continue
+              
+            for version in cert.versions:
+                
+                log.info(f'importing cert: {cert.name} version: {version.version}')
+                
+                self.dest_cert_client.import_certificate(cert.name, version.cert, enabled=version.enable, tags=version.tags)
+
+                log.info(f'Cert: {cert.name} version: {version.version} imported successfully')
 
 
-    def import_secrets(self, secrets: list[Secret]):
-         for secret in secrets:
+    def import_secrets(self, src_vault: SourceKeyVault, dest_vault: DestinationVault):
+         """
+         - import will be ignored if dest vault contains a deleted object with same name
+         - if dest vault contains same object name, and --ignore-import-if-exists is set to True, 
+           will import object to dest vault causing a new version to be created
+         """
+         
+         for secret in src_vault.secrets:
+              
+              if secret.name in dest_vault.deleted_secret_names:
+                   log.warn(f'csecret {secret.name} is found deleted in dest vault {dest_vault.name}, import is ignored')
+                   continue
+
               for version in secret.versions:
                    log.info(f'importing secret: {secret.name} version: {version.version}')
 
@@ -182,7 +251,7 @@ class VaultManager:
         # src_cert = self.dest_secret_client.get_secret('temp3-secret-1')
 
 
-    # def list_secrets(self):
+    # def list_secrets_from_src_vault(self):
 
     #     with self.otel_tracer.start_as_current_span(f'VaultManager.list_expiring_secrets.{self.vault_name}') as cs:
 
@@ -215,7 +284,7 @@ class VaultManager:
     #         return expiring_items
     
 
-    # def list_certs(self):
+    # def list_certs_from_src_vault(self):
         
     #     with self.otel_tracer.start_as_current_span(f'VaultManager.list_expiring_certs.{self.vault_name}') as cs:
 
