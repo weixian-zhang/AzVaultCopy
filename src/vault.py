@@ -27,6 +27,8 @@ class VaultManager:
     
     def list_certs_from_src_vault(self) -> list[Cert]:
         """
+        Azure AKV API does not support disabed cert, disabled cert will be ignored
+
         return: list[Cert] will be sorted with "created_on" so that during import,
         oldest will be created first and the last item will be the latest current version in destination vault
         """
@@ -40,6 +42,9 @@ class VaultManager:
             cert = Cert(cert_prop.name, cert_prop.tags)
 
             for version in self.src_cert_client.list_properties_of_certificate_versions(cert_prop.name):
+                
+                if not version.enabled:
+                     continue
                 
                 cert_policy = self.src_cert_client.get_certificate_policy(cert_prop.name)
 
@@ -86,7 +91,8 @@ class VaultManager:
 
     def list_secrets_from_src_vault(self) -> list[Secret]:
         """
-        will ignore secret.content_type == 'application/x-pkcs12' created by certificates to store private key
+        - AKV API does not support getting disabled secrets, disabled secrets are ignored
+        - ignores secret.content_type == 'application/x-pkcs12' created by certificates to store private key
         """
         
         log.info('begin export secrets')
@@ -148,6 +154,8 @@ class VaultManager:
          secrets, deleted = set(), set()
 
          for s in self.dest_secret_client.list_properties_of_secrets():
+              if not s.enabled or s.content_type in ['application/x-pkcs12', 'application/x-pem-file']:
+                continue
               secrets.add(s.name)
 
          for ds in self.dest_secret_client.list_deleted_secrets():

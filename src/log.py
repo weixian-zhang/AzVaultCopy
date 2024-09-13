@@ -4,6 +4,9 @@ import colorlog
 
 
 class _Log:
+    """
+    Class is Singleton, only one instance will ever be created
+    """
 
     _instance = None
 

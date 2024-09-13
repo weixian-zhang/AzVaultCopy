@@ -38,9 +38,6 @@ class ExportImporter:
           
         self.vm.import_certs(self.sv, self.dv)
 
-        
-        
-
         self.vm.import_secrets(self.sv, self.dv)
 
         
