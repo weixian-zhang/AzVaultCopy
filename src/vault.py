@@ -165,6 +165,8 @@ class VaultManager:
            will import object to dest vault causing a new version to be created
          """
          
+         log.info('begin importing certs')
+
          for cert in src_vault.certs:
 
             if cert.name in dest_vault.deleted_cert_names:
@@ -179,6 +181,8 @@ class VaultManager:
 
                 log.info(f'Cert: {cert.name} version: {version.version} imported successfully')
 
+         log.info('import certs completed')
+
 
     def import_secrets(self, src_vault: SourceKeyVault, dest_vault: DestinationVault):
          """
@@ -187,13 +191,16 @@ class VaultManager:
            will import object to dest vault causing a new version to be created
          """
          
+         log.info('begin import secrets')
+
          for secret in src_vault.secrets:
               
               if secret.name in dest_vault.deleted_secret_names:
-                   log.warn(f'csecret {secret.name} is found deleted in dest vault {dest_vault.name}, import is ignored')
+                   log.warn(f'secret {secret.name} is found deleted in dest vault {dest_vault.name}, import is ignored')
                    continue
 
               for version in secret.versions:
+                   
                    log.info(f'importing secret: {secret.name} version: {version.version}')
 
                    self.dest_secret_client.set_secret(secret.name, 
@@ -204,6 +211,9 @@ class VaultManager:
                                                       tags=version.tags)
 
                    log.info(f'Secret: {secret.name} version: {version.version} imported successfully')
+
+         log.info('import secrets completed')
+
         
     def _is_cert_expired(self, expires_on):
          

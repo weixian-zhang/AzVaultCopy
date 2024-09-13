@@ -1,5 +1,5 @@
 import logging
-from rich.logging import RichHandler
+import colorlog
 
 
 
@@ -18,15 +18,19 @@ class _Log:
         if self._initialized:
             return
         
-        #coloredlogs.install(fmt='%(asctime)s | %(levelname)s | %(message)s', datefmt='%b %d %Y %H:%M:%S')
+        logging.basicConfig(level = logging.INFO)
 
-        
-        # %(name)s
-        logFormatter = logging.Formatter(fmt='%(asctime)s | %(levelname)s | %(message)s', datefmt='%b %d %Y %H:%M:%S')
+        self.az_http_logger = logging.getLogger("azure.core.pipeline.policies.http_logging_policy")
+        self.az_http_logger.setLevel(level=logging.ERROR)
 
         self.logger = logging.getLogger(__name__)
+        self.logger.propagate = False
 
-        self.logger.addHandler(RichHandler())    
+        handler = colorlog.StreamHandler()
+        handler.setFormatter(colorlog.ColoredFormatter(
+            '%(asctime)s%(log_color)s | %(levelname)s | %(message)s', datefmt='%b %d %Y %H:%M:%S'))
+
+        self.logger.addHandler(handler)   
 
 
     def info(self, msg: str):
