@@ -1,10 +1,11 @@
 from azure.identity import DefaultAzureCredential
-from azure.keyvault.certificates import CertificateClient
+from azure.keyvault.certificates import CertificateClient, CertificateContentType
 from azure.keyvault.secrets import SecretClient
 from config import Config
 import base64 
-from cryptography.hazmat.primitives.serialization import Encoding, PrivateFormat, NoEncryption
-from cryptography.hazmat.primitives.serialization.pkcs12 import load_key_and_certificates
+from cryptography.hazmat.primitives.serialization import Encoding, PrivateFormat, PublicFormat, NoEncryption
+from cryptography.hazmat.primitives.serialization import pkcs12
+from cryptography.hazmat.primitives.serialization import load_pem_private_key
 from datetime import datetime
 from model import Cert, CertVersion, Secret, SecretVersion, SourceKeyVault, DestinationVault
 from pytz import timezone
@@ -56,32 +57,27 @@ class VaultManager:
                      log.warn(f'Cert {cert.name} of version {version.version} is expired, ignoring')
                      continue
                 
+                # private key stored as secret
                 private_key_b64 = self.src_secret_client.get_secret(version.name, version.version).value
-
-                private_key_b64_decoded = base64.b64decode(private_key_b64)
                 
-                private_key, public_certificate, additional_certificates = load_key_and_certificates(
-                    data=private_key_b64_decoded,
-                    password=None
-                )
+                private_key_bytes, cert_type = b'', 'pem'
+                if cert_policy.content_type == CertificateContentType.pkcs12:
+                    private_key_bytes = base64.b64decode(private_key_b64) 
+                    cert_type = 'PFX'
+                else:
+                    private_key_bytes = private_key_b64.encode()
+                    cert_type = 'PEM'
                 
-                public_key_bytes = public_certificate.public_bytes(Encoding.PEM)
-                private_key_bytes = private_key.private_bytes(Encoding.PEM, PrivateFormat.PKCS8, NoEncryption())
-                additional_cert_bytes = b''
-                for ca in additional_certificates:
-                        additional_cert_bytes += ca.public_bytes(Encoding.PEM)
-
-                cert_bytes = public_key_bytes + private_key_bytes + additional_cert_bytes
-
                 cv = CertVersion(version.version, version.expires_on, version.created_on, version.enabled, version.tags)
-                cv.public_key = public_key_bytes
-                cv.private_key = private_key_bytes
-                cv.cert =  cert_bytes
+                cv.cert =  private_key_bytes
 
                 cert.versions.append(cv)
 
+                log.info(f'exported private key as {cert_type} format for cert {cert.name}')
+               
 
             cert.versions = sorted(cert.versions, key=lambda x: x.created_on)
+
             result.append(cert)
 
         log.info('export certs completed')
@@ -235,38 +231,38 @@ class VaultManager:
                 
 
                 
-#                public_key_bytes = '' #public_key_b64.encode() #base64.b64decode(public_key_b64)
+#  pfx_private_key, pfx_public_certificate, pfx_additional_certificates = pkcs12.load_key_and_certificates(
+               #      data=private_key_bytes,
+               #      password=None
+               #  )
 
-                # with open(f'C:\\Users\\weixzha\\Desktop\\{version.name}_{version.version}.pem', 'wb') as pem_file:
-                #     pem_file.write(private_key_b64.encode())
-                    # Write the private key with appropriate PEM headers
-                    # pem_file.write(b'-----BEGIN PRIVATE KEY-----\n')
-                    # pem_file.write(base64.encodebytes(private_key_bytes))
-                    # pem_file.write(b'-----END PRIVATE KEY-----\n\n')
-                    
-                    # # Write the public key with appropriate PEM headers
-                    # pem_file.write(b'-----BEGIN PUBLIC KEY-----\n')
-                    # pem_file.write(base64.encodebytes(public_key_bytes))
-                    # pem_file.write(b'-----END PUBLIC KEY-----\n')
+               #  pfx_cert_bytes = pkcs12.serialize_key_and_certificates(subject.encode(), 
+               #                                                         pfx_private_key, 
+               #                                                         pfx_public_certificate, 
+               #                                                         pfx_additional_certificates)
+                
 
-#                 '''
+               #  pem_private_key = load_pem_private_key(data=private_key_bytes, password=None)
+               #  pem_private_bytes = pem_private_key.private_bytes(Encoding.PEM, PrivateFormat.PKCS8, NoEncryption())
+               #  pem_public_bytes = pem_private_key.public_key().public_bytes(Encoding.PEM, PublicFormat.PKCS1)
+               #  pem_cert_bytes = pem_public_bytes + pem_private_bytes
 
-                # get private key
+                
 
-                # 
 
-                # pass
+               #  public_key_bytes_pem = pfx_public_certificate.public_bytes(Encoding.PEM)
+               #  private_key_bytes_pem = pfx_private_key.private_bytes(Encoding.PEM, PrivateFormat.PKCS8, NoEncryption())
+               #  additional_cert_bytes = b''
+               #  for ca in pfx_additional_certificates:
+               #          additional_cert_bytes += ca.public_bytes(Encoding.PEM)
 
-                # get public key from key
+               #  cert_bytes = public_key_bytes_pem + private_key_bytes_pem + additional_cert_bytes
 
-                # get private key from secret
-            
+                
 
-        # src_cert = self.src_cert_client.get_certificate('azfw-tls-inspection')
-        # dest_cert = self.dest_cert_client.get_certificate('cert-4')
+               
 
-        # src_secret = self.src_secret_client.get_secret('test-azworkbench-com278c825a-2e2f-48ef-a861-68f74cbd66db')
-        # src_cert = self.dest_secret_client.get_secret('temp3-secret-1')
+               #  pkcs12_bytes = serialize_key_and_certificates(subject, private_key, public_certificate, additional_certificates)
 
 
     # def list_secrets_from_src_vault(self):
