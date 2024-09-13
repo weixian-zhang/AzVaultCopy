@@ -9,7 +9,8 @@
             "type": "debugpy",
             "request": "launch",
             "program": "${workspaceFolder}\\src\\azvc.py",
-            "console": "integratedTerminal"
+            "console": "integratedTerminal",
+            "args": ["--src_vault", "akv-gccs", "--dest_vault", "akv-temp-3", "--export_only"]
         }
     ]
 }
