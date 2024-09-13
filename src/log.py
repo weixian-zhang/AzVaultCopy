@@ -1,6 +1,7 @@
-from loguru import logger
 import logging
-import sys
+from rich.logging import RichHandler
+
+
 
 class _Log:
 
@@ -13,20 +14,29 @@ class _Log:
             cls._instance._initialized = False
         return cls._instance
 
-    def __init__(self) -> None:
+    def __init__(self, ) -> None:
         if self._initialized:
             return
         
-        logger.add(sys.stderr, format="{time:MMMM D, YYYY HH:mm:ss!UTC} | {message}")
+        #coloredlogs.install(fmt='%(asctime)s | %(levelname)s | %(message)s', datefmt='%b %d %Y %H:%M:%S')
+
+        
+        # %(name)s
+        logFormatter = logging.Formatter(fmt='%(asctime)s | %(levelname)s | %(message)s', datefmt='%b %d %Y %H:%M:%S')
+
+        self.logger = logging.getLogger(__name__)
+
+        self.logger.addHandler(RichHandler())    
+
 
     def info(self, msg: str):
-        logger.info(msg)
+        self.logger.info(msg)
 
     def warn(self, msg: str):
-        logger.warning(msg)
+        self.logger.warning(msg)
 
     def err(self, error: Exception):
-        logger.error(error)
+        self.logger.error(error)
 
 
 log = _Log()
