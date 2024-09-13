@@ -38,12 +38,12 @@ class ExportImporter:
           
         self.vm.import_certs(self.sv, self.dv)
 
-        log.info('import certs completed')
-        log.info('begin import secrets')
+        
+        
 
         self.vm.import_secrets(self.sv, self.dv)
 
-        log.info('import secrets completed')
+        
 
         
     
