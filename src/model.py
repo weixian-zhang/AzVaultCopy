@@ -3,9 +3,10 @@ from datetime import datetime
 
 
 class CertVersion:
-    def __init__(self, version, expires_on, created_on, enable, tags) -> None:
+    def __init__(self, version, cert, type, expires_on, created_on, enable, tags) -> None:
         self.version = version
-        self.cert: bytes = b'' # public + private + additional keys 
+        self.cert: bytes = cert # public + private + additional keys
+        self.type = type
         self.expires_on : datetime = expires_on
         self.created_on = created_on
         self.enable = enable
@@ -41,12 +42,13 @@ class SourceKeyVault:
         self.certs : list[Cert] = []
 
 class DestinationVault:
+    """
+    consist of secrets and certs that are either Enabled, Disabled, Expired or Deleted
+    """
     def __init__(self, name) -> None:
         self.name = name
         self.cert_names = set()
         self.secret_names = set()
-        self.deleted_cert_names = set()
-        self.deleted_secret_names = set()
 
 # class RunContext:
 #     def __init__(self) -> None:

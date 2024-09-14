@@ -10,6 +10,7 @@ from datetime import datetime
 from model import Cert, CertVersion, Secret, SecretVersion, SourceKeyVault, DestinationVault
 from pytz import timezone
 from log import log
+from util import Util
 
 # example
 # https://github.com/Azure/azure-sdk-for-python/blob/main/sdk/keyvault/azure-keyvault-certificates/samples/parse_certificate.py
@@ -28,10 +29,12 @@ class VaultManager:
     
     def list_certs_from_src_vault(self) -> list[Cert]:
         """
-        Azure AKV API does not support disabed cert, disabled cert will be ignored
-
-        return: list[Cert] will be sorted with "created_on" so that during import,
-        oldest will be created first and the last item will be the latest current version in destination vault
+        The following secret conditions will be ignored:
+        - disabled secrets (AKV API does not support)
+        - disabled version (AKV API does not support)
+        - expired version
+        return: Each cert version will be sorted with "created_on" so that during import,
+        oldest will be created first and the last item which is the latest current version in destination vault
         """
 
         log.info('begin export certs')
@@ -39,22 +42,27 @@ class VaultManager:
         result = []
 
         for cert_prop in self.src_cert_client.list_properties_of_certificates():
+            
+            if not cert_prop.enabled:
+                log.warn(f'Cert {cert.name} is not enabled, ignoring')
 
             cert = Cert(cert_prop.name, cert_prop.tags)
 
             for version in self.src_cert_client.list_properties_of_certificate_versions(cert_prop.name):
                 
                 if not version.enabled:
+                     log.warn(f'Cert {cert.name} of version {version.version} is not enabled, ignoring')
                      continue
                 
                 cert_policy = self.src_cert_client.get_certificate_policy(cert_prop.name)
 
-                # check expiring
+
                 if not cert_policy.exportable:
                      log.warn(f'Cert {cert.name} of version {version.version} is marked Not Exportable, ignoring')
                      continue
-                if self._is_cert_expired(version.expires_on):
-                     log.warn(f'Cert {cert.name} of version {version.version} is expired, ignoring')
+                
+                if self._is_object_expired(version.expires_on):
+                     log.warn(f'Cert {cert.name} of version {version.version} was expired on {Util.friendly_date_str(version.expires_on)}, ignoring')
                      continue
                 
                 # private key stored as secret
@@ -68,17 +76,16 @@ class VaultManager:
                     private_key_bytes = private_key_b64.encode()
                     cert_type = 'PEM'
                 
-                cv = CertVersion(version.version, version.expires_on, version.created_on, version.enabled, version.tags)
-                cv.cert =  private_key_bytes
+                cv = CertVersion(version.version, private_key_bytes, cert_type, version.expires_on, version.created_on, version.enabled, version.tags)
 
                 cert.versions.append(cv)
 
-                log.info(f'exported private key as {cert_type} format for cert {cert.name}')
+                log.info(f'Cert {cert.name} of version {version.version} has private key exported as {cert_type} format')
                
-
-            cert.versions = sorted(cert.versions, key=lambda x: x.created_on)
-
-            result.append(cert)
+            
+            if cert.versions:
+               cert.versions = sorted(cert.versions, key=lambda x: x.created_on)
+               result.append(cert)
 
         log.info('export certs completed')
 
@@ -87,8 +94,14 @@ class VaultManager:
 
     def list_secrets_from_src_vault(self) -> list[Secret]:
         """
-        - AKV API does not support getting disabled secrets, disabled secrets are ignored
+        the following secret conditions will be ignored:
+        - disabled secrets (AKV API does not support)
+        - disabled version (AKV API does not support)
+        - expired version
         - ignores secret.content_type == 'application/x-pkcs12' created by certificates to store private key
+
+        return: Each secret version will be sorted with "created_on" so that during import,
+        oldest will be created first and the last item which is the latest current version in destination vault
         """
         
         log.info('begin export secrets')
@@ -99,10 +112,22 @@ class VaultManager:
 
             vault_secret = Secret(secret.name, secret.tags)
 
-            if not secret.enabled or secret.content_type == 'application/x-pkcs12':
+            if not secret.enabled:
+                log.warn(f'Secret {secret.name} of version {version.version} is not enabled, ignoring')
+                continue
+            
+            if self._is_secret_private_key_created_by_cert(secret.content_type):
                 continue
 
             for version in self.src_secret_client.list_properties_of_secret_versions(secret.name):
+
+                if not version.enabled:
+                    log.warn(f'Secret {secret.name} of version {version.version} is not enabled, ignoring')
+                    continue
+                
+                if version.expires_on and self._is_object_expired(version.expires_on):
+                     log.warn(f'Secret {secret.name} of version {version.version} was expired on {Util.friendly_date_str(version.expires_on)}, ignoring')
+                     continue
                 
                 secret_value  = self.src_secret_client.get_secret(version.name, version.version).value
 
@@ -110,56 +135,60 @@ class VaultManager:
 
                 vault_secret.versions.append(sv)
 
-            
-            vault_secret.versions = sorted(vault_secret.versions, key = lambda x: x.created_on)
+                log.info(f'Secret {secret.name} of version {version.version} is exported successfully')
 
-            result.append(vault_secret)
+            if vault_secret.versions:
+               vault_secret.versions = sorted(vault_secret.versions, key = lambda x: x.created_on)
+               result.append(vault_secret)
 
         log.info('export secrets completed')
 
         return result
     
 
-    def list_certs_from_dest_vault(self) -> list[set, set]:
+    def list_certs_from_dest_vault(self) -> set:
          """
          returns 2 sets containing certs and deleted certs
          """
 
          log.info('exporting certs from dest vault')
 
-         certs, deleted = set(), set()
+         certs = set()
 
          for c in self.dest_cert_client.list_properties_of_certificates():
               certs.add(c.name)
 
          for dc in self.dest_cert_client.list_deleted_certificates():
-              deleted.add(dc.name)
+              certs.add(dc.name)
          
          log.info('export dest certs completed')
 
-         return certs, deleted
+         return certs
     
 
-    def list_secrets_from_dest_vault(self) -> list[set, set]:
+    def list_secrets_from_dest_vault(self) -> set:
          """
+         all secrets with the following conditions will be retrieved
+         - disabled
+         - expired
+         - deleted
+
          returns 2 sets containing secrets and deleted secrets
          """
          
          log.info('exporting secrets from dest vault')
 
-         secrets, deleted = set(), set()
+         secrets = set()
 
          for s in self.dest_secret_client.list_properties_of_secrets():
-              if not s.enabled or s.content_type in ['application/x-pkcs12', 'application/x-pem-file']:
-                continue
               secrets.add(s.name)
 
          for ds in self.dest_secret_client.list_deleted_secrets():
-              deleted.add(ds.name)
+              secrets.add(ds.name)
          
          log.info('export dest secrets completed')
 
-         return secrets, deleted
+         return secrets
     
 
     def import_certs(self, src_vault: SourceKeyVault, dest_vault: DestinationVault):
@@ -218,8 +247,14 @@ class VaultManager:
 
          log.info('import secrets completed')
 
+     
+    def _is_secret_private_key_created_by_cert(self, content_type: str):
+        if content_type in ['application/x-pkcs12', 'application/x-pem-file']:
+            return True
+        return False
+
         
-    def _is_cert_expired(self, expires_on):
+    def _is_object_expired(self, expires_on):
          
          if self._as_utc_8(datetime.now()) >= self._as_utc_8(expires_on):
               return True

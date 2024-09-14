@@ -4,6 +4,7 @@ from config import Config
 from vault import VaultManager
 from export_import import ExportImporter
 from log import log
+
 # click tutorial
 # https://www.youtube.com/watch?v=riQd3HNbaDk&list=PLJ39kWiJXSizF1shhf2rHi-aA1yjt7rtX
 
@@ -31,6 +32,8 @@ def run(src_vault, dest_vault, src_token, dest_token, export_dir='',export_only=
          config = Config(src_vault, dest_vault, src_token, dest_token, export_dir, export_only, no_import_if_dest_exist)
          ei = ExportImporter(config)
          ei.run()
+
+         log.info('execution completed')
     except Exception as e:
             log.err(e)
 

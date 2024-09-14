@@ -10,7 +10,7 @@
             "request": "launch",
             "program": "${workspaceFolder}\\src\\azvc.py",
             "console": "integratedTerminal",
-            "args": ["--src_vault", "akv-gccs", "--dest_vault", "akv-temp-3", "--export_only"]
+            "args": ["--src_vault", "akv-gccs", "--dest_vault", "akv-temp-3", "--export_only", "--export_dir", "%USERPROFILE%\\desktop\\export"]
         }
     ]
 }

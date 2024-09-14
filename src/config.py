@@ -24,6 +24,9 @@ class Config:
         self.export_dir = export_dir
         self.no_import_if_dest_exist = no_import_if_dest_exist
         self.export_only = export_only
+
+        if self.export_only and not self.export_dir:
+            raise Exception('specify an export path for --export_dir')
         
         self.source_azure_cred = ExistingTokenCredential(self.src_token)
         self.dest_azure_cred =  ExistingTokenCredential(self.dest_token)
@@ -34,3 +37,5 @@ class Config:
     
     def get_dest_vault_url(self):
         return f'https://{self.dest_vault_name}.vault.azure.net'
+    
+
