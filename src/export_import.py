@@ -2,7 +2,8 @@ from model import SourceKeyVault, DestinationVault
 from vault import VaultManager
 from config import Config
 from log import log
-
+from dir import ExportDirectory
+import os
 class ExportImporter:
     
     def __init__(self, config: Config) -> None:
@@ -15,30 +16,59 @@ class ExportImporter:
         
         self.export_from_source_vault()
 
-        self.import_to_dest_vault()
+        if not self.config.export_only:
+            self.export_from_dest_vault()
+            self.import_to_dest_vault()
+
+        if self.config.export_dir:
+            self.save_export_objects_to_local()
 
 
     def export_from_source_vault(self):
+        """
+        if --export-only flag is True,  will skip fetching destination secrets and certs from dest vault
+        """
 
         self.sv.certs = self.vm.list_certs_from_src_vault()
         
         self.sv.secrets = self.vm.list_secrets_from_src_vault()
-        
-        dest_certs, dest_deleted_certs = self.vm.list_certs_from_dest_vault()
-        self.dv.cert_names = dest_certs
-        self.dv.deleted_cert_names = dest_deleted_certs
-        
-        dest_secrets, dest_deleted_secrets = self.vm.list_secrets_from_dest_vault()
-        self.dv.secret_names = dest_secrets
-        self.dv.deleted_secret_names = dest_deleted_secrets
-        
+            
 
+    def export_from_dest_vault(self):
+        dest_certs = self.vm.list_certs_from_dest_vault()
+        self.dv.cert_names = dest_certs
+        
+        dest_secrets = self.vm.list_secrets_from_dest_vault()
+        self.dv.secret_names = dest_secrets
 
     def import_to_dest_vault(self):
           
         self.vm.import_certs(self.sv, self.dv)
 
         self.vm.import_secrets(self.sv, self.dv)
+
+    
+    def save_export_objects_to_local(self):
+        
+        ed = ExportDirectory(self.config)
+        
+        for cert in self.sv.certs:
+            if not cert.versions:
+                continue
+            cert_dir = ed.get_export_path('cert', cert.name)
+            for version in cert.versions:
+                file_name = f'{cert.name}_{version.version}.{version.type.lower()}'
+                file_path = os.path.join(cert_dir, file_name)
+                ed.save_cert(file_path, version.cert)
+
+        for secret in self.sv.secrets:
+            if not secret.versions:
+                continue
+            secret_dir = ed.get_export_path('secret', secret.name)
+            for version in secret.versions:
+                file_name = f'{secret.name}_{version.version}.txt'
+                file_path = os.path.join(secret_dir, file_name)
+                ed.save_secret(file_path, version.value)
 
         
 
