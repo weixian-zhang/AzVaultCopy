@@ -3,10 +3,11 @@ from datetime import datetime
 
 
 class CertVersion:
-    def __init__(self, version, cert, type, expires_on, created_on, enable, tags) -> None:
+    def __init__(self, version, cert, type, cert_policy, expires_on, created_on, enable, tags) -> None:
         self.version = version
         self.cert: bytes = cert # public + private + additional keys
         self.type = type
+        self.cert_policy = cert_policy
         self.expires_on : datetime = expires_on
         self.created_on = created_on
         self.enable = enable

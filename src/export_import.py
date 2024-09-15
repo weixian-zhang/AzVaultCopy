@@ -16,12 +16,12 @@ class ExportImporter:
         
         self.export_from_source_vault()
 
+        if self.config.export_dir:
+            self.save_export_objects_to_local()
+
         if not self.config.export_only:
             self.export_from_dest_vault()
             self.import_to_dest_vault()
-
-        if self.config.export_dir:
-            self.save_export_objects_to_local()
 
 
     def export_from_source_vault(self):
