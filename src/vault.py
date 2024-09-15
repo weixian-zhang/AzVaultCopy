@@ -1,5 +1,6 @@
 from azure.identity import DefaultAzureCredential
-from azure.keyvault.certificates import CertificateClient, CertificateContentType
+from azure.keyvault.certificates import CertificateClient, CertificateContentType, CertificatePolicy
+from cryptography import x509
 from azure.keyvault.secrets import SecretClient
 from config import Config
 import base64 
@@ -43,9 +44,6 @@ class VaultManager:
             if not cert_prop.enabled:
                 log.warn(f'Cert {cert.name} is not enabled, ignoring')
 
-            if cert_prop.name != 'cert-3':
-                continue
-
             cert = Cert(cert_prop.name, cert_prop.tags)
 
             for version in self.src_cert_client.list_properties_of_certificate_versions(cert_prop.name):
@@ -56,7 +54,6 @@ class VaultManager:
                 
                 cert_policy = self.src_cert_client.get_certificate_policy(cert_prop.name)
 
-
                 if not cert_policy.exportable:
                      log.warn(f'Cert {cert.name} of version {version.version} is marked Not Exportable, ignoring')
                      continue
@@ -65,12 +62,24 @@ class VaultManager:
                      log.warn(f'Cert {cert.name} of version {version.version} was expired on {Util.friendly_date_str(version.expires_on)}, ignoring')
                      continue
                 
+
+                
                 # private key stored as secret
                 private_key_b64 = self.src_secret_client.get_secret(version.name, version.version).value
                 
                 private_key_bytes, cert_type = self._decode_private_key(private_key_b64)
+
+                cp = CertificatePolicy(cert_policy.issuer_name)
+                cp.__dict__.update(cert_policy.__dict__)
                 
-                cv = CertVersion(version.version, private_key_bytes, cert_type, version.expires_on, version.created_on, version.enabled, version.tags)
+                if cert_type == 'PFX':
+                    setattr(cp, '_content_type', CertificateContentType.pkcs12)
+                else:
+                    setattr(cp, '_content_type', CertificateContentType.pem)
+                
+                cv = CertVersion(version=version.version, cert=private_key_bytes, cert_policy=cp,
+                                 type=cert_type, expires_on= version.expires_on, 
+                                 created_on= version.created_on, enable= version.enabled, tags= version.tags)
 
                 cert.versions.append(cv)
 
@@ -203,7 +212,8 @@ class VaultManager:
                 
                 log.info(f'importing cert: {cert.name} version: {version.version}')
                 
-                self.dest_cert_client.import_certificate(cert.name, version.cert, enabled=version.enable, tags=version.tags)
+                self.dest_cert_client.import_certificate(cert.name, version.cert, policy=version.cert_policy,
+                                                         enabled=version.enable, tags=version.tags)
 
                 log.info(f'Cert: {cert.name} version: {version.version} imported successfully')
 
@@ -248,20 +258,54 @@ class VaultManager:
 
     def _decode_private_key(self, private_key: str) -> tuple[bytes, str]:
           """
+          key vault supports 2 types of cert format, PEM or PFX
+
           content_type cannot be used to reliably determine if cert if od PEM or PFX format.
           Reason is Key ault SDK returns use latest content_type for all versions regardless if older version is a different content type
           e.g: latest version is PEM and older versions are PFX, content_type will always be PEM for all versions
           """
-          private_key_bytes, cert_type = b'', 'PFX'
-          try:
-              private_key_bytes = base64.b64decode(private_key) 
-              cert_type = 'PFX'
-          except:
-               private_key_bytes = private_key.encode()
-               cert_type = 'PEM'
+          #from cryptography.hazmat.primitives.serialization.pkcs12 import load_key_and_certificates, load_pkcs12
+
+          # def _try_b64_decode_private_key_str(private_key) -> tuple[bool, bytes]:
+          #      try:
+          #           private_key_bytes = base64.b64decode(private_key)
+          #           return True, private_key_bytes
+          #      except:
+          #           return False, b''
           
-          return (private_key_bytes, cert_type)
+          def _determine_if_pem_format(private_key: str):
+               if '-----BEGIN' in private_key:
+                    return True
+               else:
+                    return False
+
+
+          is_pem =  _determine_if_pem_format(private_key)  #private_key.encode()
+
+          if is_pem:
+              cert_type = 'PEM'
+              private_key_bytes = private_key.encode()
+          else:
+               cert_type = 'PFX'
+               private_key_bytes = base64.b64decode(private_key)
                
+          
+          # try:
+          # #     private_key, public_certificate, additional_certificates = load_key_and_certificates(
+          # #           data=private_key_bytes,
+          # #           password=None
+          # #     )
+              
+          #     private_key_bytes = base64.b64decode(private_key) 
+              
+          # except Exception as e:
+          #     private_key_bytes = private_key.encode()
+          #     cert_type = 'PEM'
+          
+              
+          return private_key_bytes, cert_type
+    
+    
 
     def _is_secret_private_key_created_by_cert(self, content_type: str):
         if content_type in ['application/x-pkcs12', 'application/x-pem-file']:
