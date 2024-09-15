@@ -2,6 +2,8 @@
     // Use IntelliSense to learn about possible attributes.
     // Hover to view descriptions of existing attributes.
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+
+    //"--export-only", "--export_dir", "%USERPROFILE%\\desktop\\export"] , "--no_import_if_dest_exist"
     "version": "0.2.0",
     "configurations": [
         {
@@ -10,7 +12,7 @@
             "request": "launch",
             "program": "${workspaceFolder}\\src\\azvc.py",
             "console": "integratedTerminal",
-            "args": ["--src_vault", "akv-gccs", "--dest_vault", "akv-temp-3", "--export_only", "--export_dir", "%USERPROFILE%\\desktop\\export"]
+            "args": ["--src_vault", "akv-export", "--dest_vault", "akv-temp-3", "--export_dir", "%USERPROFILE%\\desktop\\export", "--export_only"]
         }
     ]
 }

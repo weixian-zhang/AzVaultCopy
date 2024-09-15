@@ -3,9 +3,6 @@ from azure.keyvault.certificates import CertificateClient, CertificateContentTyp
 from azure.keyvault.secrets import SecretClient
 from config import Config
 import base64 
-from cryptography.hazmat.primitives.serialization import Encoding, PrivateFormat, PublicFormat, NoEncryption
-from cryptography.hazmat.primitives.serialization import pkcs12
-from cryptography.hazmat.primitives.serialization import load_pem_private_key
 from datetime import datetime
 from model import Cert, CertVersion, Secret, SecretVersion, SourceKeyVault, DestinationVault
 from pytz import timezone
@@ -46,6 +43,9 @@ class VaultManager:
             if not cert_prop.enabled:
                 log.warn(f'Cert {cert.name} is not enabled, ignoring')
 
+            if cert_prop.name != 'cert-3':
+                continue
+
             cert = Cert(cert_prop.name, cert_prop.tags)
 
             for version in self.src_cert_client.list_properties_of_certificate_versions(cert_prop.name):
@@ -68,13 +68,7 @@ class VaultManager:
                 # private key stored as secret
                 private_key_b64 = self.src_secret_client.get_secret(version.name, version.version).value
                 
-                private_key_bytes, cert_type = b'', 'pem'
-                if cert_policy.content_type == CertificateContentType.pkcs12:
-                    private_key_bytes = base64.b64decode(private_key_b64) 
-                    cert_type = 'PFX'
-                else:
-                    private_key_bytes = private_key_b64.encode()
-                    cert_type = 'PEM'
+                private_key_bytes, cert_type = self._decode_private_key(private_key_b64)
                 
                 cv = CertVersion(version.version, private_key_bytes, cert_type, version.expires_on, version.created_on, version.enabled, version.tags)
 
@@ -98,7 +92,7 @@ class VaultManager:
         - disabled secrets (AKV API does not support)
         - disabled version (AKV API does not support)
         - expired version
-        - ignores secret.content_type == 'application/x-pkcs12' created by certificates to store private key
+        - ignores secret.content_type == 'application/x-pkcs12' and application/x-pem-file created by certificates to store private key
 
         return: Each secret version will be sorted with "created_on" so that during import,
         oldest will be created first and the last item which is the latest current version in destination vault
@@ -120,7 +114,7 @@ class VaultManager:
                 continue
 
             for version in self.src_secret_client.list_properties_of_secret_versions(secret.name):
-
+      
                 if not version.enabled:
                     log.warn(f'Secret {secret.name} of version {version.version} is not enabled, ignoring')
                     continue
@@ -146,54 +140,49 @@ class VaultManager:
         return result
     
 
-    def list_certs_from_dest_vault(self) -> set:
+    def list_certs_from_dest_vault(self) -> tuple[set, set]:
          """
-         returns 2 sets containing certs and deleted certs
+         returns a set containing all certs and deleted certs
          """
 
          log.info('exporting certs from dest vault')
 
-         certs = set()
+         certs, deleted_certs = set(), set()
 
          for c in self.dest_cert_client.list_properties_of_certificates():
               certs.add(c.name)
 
          for dc in self.dest_cert_client.list_deleted_certificates():
-              certs.add(dc.name)
+              deleted_certs.add(dc.name)
          
          log.info('export dest certs completed')
 
-         return certs
+         return certs, deleted_certs
     
 
-    def list_secrets_from_dest_vault(self) -> set:
+    def list_secrets_from_dest_vault(self) -> tuple[set, set]:
          """
-         all secrets with the following conditions will be retrieved
-         - disabled
-         - expired
-         - deleted
-
-         returns 2 sets containing secrets and deleted secrets
+         returns 2 sets containing all secrets and deleted secrets
          """
          
          log.info('exporting secrets from dest vault')
 
-         secrets = set()
+         secrets, deleted_secrets = set(), set()
 
          for s in self.dest_secret_client.list_properties_of_secrets():
               secrets.add(s.name)
 
          for ds in self.dest_secret_client.list_deleted_secrets():
-              secrets.add(ds.name)
+              deleted_secrets.add(ds.name)
          
          log.info('export dest secrets completed')
 
-         return secrets
+         return secrets, deleted_secrets
     
 
     def import_certs(self, src_vault: SourceKeyVault, dest_vault: DestinationVault):
          """
-         - import will be ignored if dest vault contains a deleted object with same name
+         - import will be ignored if dest vault contains object with same name
          - if dest vault contains same object name, and --ignore-import-if-exists is set to True, 
            will import object to dest vault causing a new version to be created
          """
@@ -202,8 +191,12 @@ class VaultManager:
 
          for cert in src_vault.certs:
 
+            if self.config.no_import_if_dest_exist and cert.name in dest_vault.cert_names:
+                   log.warn(f'Cert {cert.name} is found in dest vault {dest_vault.name}, import is ignored with --no_import_if_dest_exist flag on')
+                   continue
+            
             if cert.name in dest_vault.deleted_cert_names:
-              log.warn(f'cert {cert.name} is found deleted in dest vault {dest_vault.name}, import is ignored')
+              log.warn(f'cert {cert.name} is found in dest vault {dest_vault.name} as deleted, import is ignored')
               continue
               
             for version in cert.versions:
@@ -219,7 +212,7 @@ class VaultManager:
 
     def import_secrets(self, src_vault: SourceKeyVault, dest_vault: DestinationVault):
          """
-         - import will be ignored if dest vault contains a deleted object with same name
+         - import will be ignored if dest vault contains object with same name
          - if dest vault contains same object name, and --ignore-import-if-exists is set to True, 
            will import object to dest vault causing a new version to be created
          """
@@ -228,8 +221,12 @@ class VaultManager:
 
          for secret in src_vault.secrets:
               
+              if self.config.no_import_if_dest_exist and secret.name in dest_vault.secret_names:
+                   log.warn(f'secret {secret.name} is found in dest vault {dest_vault.name}, import is ignored with --no_import_if_dest_exist flag on')
+                   continue
+
               if secret.name in dest_vault.deleted_secret_names:
-                   log.warn(f'secret {secret.name} is found deleted in dest vault {dest_vault.name}, import is ignored')
+                   log.warn(f'secret {secret.name} is found in dest vault {dest_vault.name} as deleted, import is ignored')
                    continue
 
               for version in secret.versions:
@@ -247,7 +244,25 @@ class VaultManager:
 
          log.info('import secrets completed')
 
-     
+
+
+    def _decode_private_key(self, private_key: str) -> tuple[bytes, str]:
+          """
+          content_type cannot be used to reliably determine if cert if od PEM or PFX format.
+          Reason is Key ault SDK returns use latest content_type for all versions regardless if older version is a different content type
+          e.g: latest version is PEM and older versions are PFX, content_type will always be PEM for all versions
+          """
+          private_key_bytes, cert_type = b'', 'PFX'
+          try:
+              private_key_bytes = base64.b64decode(private_key) 
+              cert_type = 'PFX'
+          except:
+               private_key_bytes = private_key.encode()
+               cert_type = 'PEM'
+          
+          return (private_key_bytes, cert_type)
+               
+
     def _is_secret_private_key_created_by_cert(self, content_type: str):
         if content_type in ['application/x-pkcs12', 'application/x-pem-file']:
             return True
@@ -265,103 +280,7 @@ class VaultManager:
          return d.astimezone(timezone('Asia/Kuala_Lumpur'))
                 
 
-                
-#  pfx_private_key, pfx_public_certificate, pfx_additional_certificates = pkcs12.load_key_and_certificates(
-               #      data=private_key_bytes,
-               #      password=None
-               #  )
-
-               #  pfx_cert_bytes = pkcs12.serialize_key_and_certificates(subject.encode(), 
-               #                                                         pfx_private_key, 
-               #                                                         pfx_public_certificate, 
-               #                                                         pfx_additional_certificates)
-                
-
-               #  pem_private_key = load_pem_private_key(data=private_key_bytes, password=None)
-               #  pem_private_bytes = pem_private_key.private_bytes(Encoding.PEM, PrivateFormat.PKCS8, NoEncryption())
-               #  pem_public_bytes = pem_private_key.public_key().public_bytes(Encoding.PEM, PublicFormat.PKCS1)
-               #  pem_cert_bytes = pem_public_bytes + pem_private_bytes
-
-                
-
-
-               #  public_key_bytes_pem = pfx_public_certificate.public_bytes(Encoding.PEM)
-               #  private_key_bytes_pem = pfx_private_key.private_bytes(Encoding.PEM, PrivateFormat.PKCS8, NoEncryption())
-               #  additional_cert_bytes = b''
-               #  for ca in pfx_additional_certificates:
-               #          additional_cert_bytes += ca.public_bytes(Encoding.PEM)
-
-               #  cert_bytes = public_key_bytes_pem + private_key_bytes_pem + additional_cert_bytes
-
-                
-
-               
-
-               #  pkcs12_bytes = serialize_key_and_certificates(subject, private_key, public_certificate, additional_certificates)
-
-
-    # def list_secrets_from_src_vault(self):
-
-    #     with self.otel_tracer.start_as_current_span(f'VaultManager.list_expiring_secrets.{self.vault_name}') as cs:
-
-    #         #cs.add_event(f'VaultManager.list_expiring_secrets.{self.vault_name}')
-        
-    #         expiring_items = []
-
-    #         for secret in self.secret_client.list_properties_of_secrets():
-
-    #             # ignore disabled and secret that is private key belonging to Certificate
-    #             if not secret.enabled or secret.content_type == 'application/x-pkcs12':
-    #                 continue
-
-    #             ei = ExpiringObject(secret.name, 'secret')
-
-    #             for version in self.secret_client.list_properties_of_secret_versions(secret.name):
-
-    #                 if not version.enabled:
-    #                     continue
-
-    #                 if LogicUtil.is_expiring(version.expires_on, self.appconfig.num_of_days_notify_before_expiry):
-    #                     ev = ExpiringVersion(version.version, version.expires_on, version.created_on)
-    #                     ei.versions.append(ev)
-
-    #             if ei.versions:
-    #                 ei.set_latest_version()
-    #                 expiring_items.append(ei)
-
-            
-    #         return expiring_items
-    
-
-    # def list_certs_from_src_vault(self):
-        
-    #     with self.otel_tracer.start_as_current_span(f'VaultManager.list_expiring_certs.{self.vault_name}') as cs:
-
-    #         #cs.add_event(f'VaultManager.list_expiring_certs.{self.vault_name}')
-
-    #         expiring_items = []
-
-    #         for cert in self.cert_client.list_properties_of_certificates():
-
-    #             if not cert.enabled:
-    #                 continue
-
-    #             ei = ExpiringObject(cert.name, 'cert')
-
-    #             for version in self.cert_client.list_properties_of_certificate_versions(cert.name):
-
-    #                 if not version.enabled:
-    #                     continue
-
-    #                 if LogicUtil.is_expiring(version.expires_on, self.appconfig.num_of_days_notify_before_expiry):
-    #                     ev = ExpiringVersion(version.version, version.expires_on, version.created_on)
-    #                     ei.versions.append(ev)
-
-    #             if ei.versions:
-    #                 ei.set_latest_version()
-    #                 expiring_items.append(ei)
-            
-    #         return expiring_items
+     
     
     
 
