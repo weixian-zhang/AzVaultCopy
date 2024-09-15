@@ -48,7 +48,9 @@ class DestinationVault:
     def __init__(self, name) -> None:
         self.name = name
         self.cert_names = set()
+        self.deleted_cert_names = set()
         self.secret_names = set()
+        self.deleted_secret_names = set([])
 
 # class RunContext:
 #     def __init__(self) -> None:

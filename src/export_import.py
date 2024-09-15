@@ -35,11 +35,13 @@ class ExportImporter:
             
 
     def export_from_dest_vault(self):
-        dest_certs = self.vm.list_certs_from_dest_vault()
-        self.dv.cert_names = dest_certs
+        certs, deleted_certs = self.vm.list_certs_from_dest_vault()
+        self.dv.cert_names = certs
+        self.dv.deleted_cert_names = deleted_certs
         
-        dest_secrets = self.vm.list_secrets_from_dest_vault()
-        self.dv.secret_names = dest_secrets
+        secrets, deleted_secrets = self.vm.list_secrets_from_dest_vault()
+        self.dv.secret_names = secrets
+        self.dv.deleted_secret_names = deleted_secrets
 
     def import_to_dest_vault(self):
           
