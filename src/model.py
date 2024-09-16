@@ -3,7 +3,8 @@ from datetime import datetime
 
 
 class CertVersion:
-    def __init__(self, version, cert, type, cert_policy, expires_on, created_on, enable, tags) -> None:
+    def __init__(self, cert_name, version, cert, type, cert_policy, expires_on, created_on, enable, tags) -> None:
+        self.cert_name = cert_name
         self.version = version
         self.cert: bytes = cert # public + private + additional keys
         self.type = type
@@ -20,11 +21,13 @@ class Cert:
         self.tags = tags if tags else {}
 
 class SecretVersion:
-    def __init__(self, version, value, content_type, expires_on, created_on, enabled, tags) -> None:
+    def __init__(self, secret_name, version, value, content_type, expires_on, activates_on, created_on, enabled, tags) -> None:
+        self.secret_name = secret_name
         self.version = version
         self.value = value
         self.content_type = content_type
         self.expires_on = expires_on
+        self.activates_on = activates_on
         self.created_on = created_on
         self.enabled= enabled
         self.tags = tags if tags else {}
