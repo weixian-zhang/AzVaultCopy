@@ -63,27 +63,20 @@ class VaultManager:
                      continue
                 
 
-                
                 # private key stored as secret
                 private_key_b64 = self.src_secret_client.get_secret(version.name, version.version).value
                 
-                private_key_bytes, cert_type = self._decode_private_key(private_key_b64)
+                private_key_bytes, decoded_cert_type = self._decode_private_key(private_key_b64)
 
-                cp = CertificatePolicy(cert_policy.issuer_name)
-                cp.__dict__.update(cert_policy.__dict__)
+                version_cert_policy = self._create_version_specific_cert_policy(decoded_cert_type, cert_policy)
                 
-                if cert_type == 'PFX':
-                    setattr(cp, '_content_type', CertificateContentType.pkcs12)
-                else:
-                    setattr(cp, '_content_type', CertificateContentType.pem)
-                
-                cv = CertVersion(version=version.version, cert=private_key_bytes, cert_policy=cp,
-                                 type=cert_type, expires_on= version.expires_on, 
+                cv = CertVersion(cert_name=cert_prop.name, version=version.version, cert=private_key_bytes,
+                                 cert_policy=version_cert_policy, type=decoded_cert_type, expires_on= version.expires_on, 
                                  created_on= version.created_on, enable= version.enabled, tags= version.tags)
 
                 cert.versions.append(cv)
 
-                log.info(f'Cert {cert.name} of version {version.version} has private key exported as {cert_type} format')
+                log.info(f'exported Cert {cert.name} of version {version.version} with private key as {decoded_cert_type} format')
                
             
             if cert.versions:
@@ -123,7 +116,7 @@ class VaultManager:
                 continue
 
             for version in self.src_secret_client.list_properties_of_secret_versions(secret.name):
-      
+              
                 if not version.enabled:
                     log.warn(f'Secret {secret.name} of version {version.version} is not enabled, ignoring')
                     continue
@@ -134,11 +127,14 @@ class VaultManager:
                 
                 secret_value  = self.src_secret_client.get_secret(version.name, version.version).value
 
-                sv = SecretVersion(version.version, secret_value, version.content_type, version.expires_on, version.created_on, version.enabled, version.tags)
+                sv = SecretVersion(secret_name=secret.name, version=version.version, value=secret_value, 
+                                   content_type=version.content_type, expires_on=version.expires_on, 
+                                   activates_on=version.not_before,created_on=version.created_on,
+                                   enabled=version.enabled, tags=version.tags)
 
                 vault_secret.versions.append(sv)
 
-                log.info(f'Secret {secret.name} of version {version.version} is exported successfully')
+                log.info(f'exported Secret {secret.name} of version {version.version}')
 
             if vault_secret.versions:
                vault_secret.versions = sorted(vault_secret.versions, key = lambda x: x.created_on)
@@ -189,7 +185,7 @@ class VaultManager:
          return secrets, deleted_secrets
     
 
-    def import_certs(self, src_vault: SourceKeyVault, dest_vault: DestinationVault):
+    def import_certs(self, src_vault: SourceKeyVault, dest_vault: DestinationVault) -> list[CertVersion]:
          """
          - import will be ignored if dest vault contains object with same name
          - if dest vault contains same object name, and --ignore-import-if-exists is set to True, 
@@ -197,6 +193,8 @@ class VaultManager:
          """
          
          log.info('begin importing certs')
+         
+         imported_version_result = []
 
          for cert in src_vault.certs:
 
@@ -210,14 +208,18 @@ class VaultManager:
               
             for version in cert.versions:
                 
-                log.info(f'importing cert: {cert.name} version: {version.version}')
+                #log.info(f'importing cert: {cert.name} version: {version.version}')
                 
                 self.dest_cert_client.import_certificate(cert.name, version.cert, policy=version.cert_policy,
                                                          enabled=version.enable, tags=version.tags)
+                
+                imported_version_result.append(version)
 
-                log.info(f'Cert: {cert.name} version: {version.version} imported successfully')
+                log.info(f'imported Cert: {cert.name} with version: {version.version} is successful')
 
          log.info('import certs completed')
+
+         return imported_version_result
 
 
     def import_secrets(self, src_vault: SourceKeyVault, dest_vault: DestinationVault):
@@ -228,6 +230,8 @@ class VaultManager:
          """
          
          log.info('begin import secrets')
+
+         imported_version_result = []
 
          for secret in src_vault.secrets:
               
@@ -241,16 +245,19 @@ class VaultManager:
 
               for version in secret.versions:
                    
-                   log.info(f'importing secret: {secret.name} version: {version.version}')
+                   #log.info(f'importing secret: {secret.name} version: {version.version}')
 
                    self.dest_secret_client.set_secret(secret.name, 
                                                       version.value,
                                                       content_type=version.content_type,
                                                       enabled=version.enabled,
-                                                      expires_on=version.expires_on, 
+                                                      expires_on=version.expires_on,
+                                                      not_before=version.activates_on,
                                                       tags=version.tags)
+                   
+                   imported_version_result.append(version)
 
-                   log.info(f'Secret: {secret.name} version: {version.version} imported successfully')
+                   log.info(f'imported Secret: {secret.name} version: {version.version} is successful')
 
          log.info('import secrets completed')
 
@@ -264,23 +271,15 @@ class VaultManager:
           Reason is Key ault SDK returns use latest content_type for all versions regardless if older version is a different content type
           e.g: latest version is PEM and older versions are PFX, content_type will always be PEM for all versions
           """
-          #from cryptography.hazmat.primitives.serialization.pkcs12 import load_key_and_certificates, load_pkcs12
-
-          # def _try_b64_decode_private_key_str(private_key) -> tuple[bool, bytes]:
-          #      try:
-          #           private_key_bytes = base64.b64decode(private_key)
-          #           return True, private_key_bytes
-          #      except:
-          #           return False, b''
           
-          def _determine_if_pem_format(private_key: str):
+          def _is_pem_format(private_key: str):
                if '-----BEGIN' in private_key:
                     return True
                else:
                     return False
 
 
-          is_pem =  _determine_if_pem_format(private_key)  #private_key.encode()
+          is_pem =  _is_pem_format(private_key)
 
           if is_pem:
               cert_type = 'PEM'
@@ -289,23 +288,32 @@ class VaultManager:
                cert_type = 'PFX'
                private_key_bytes = base64.b64decode(private_key)
                
-          
-          # try:
-          # #     private_key, public_certificate, additional_certificates = load_key_and_certificates(
-          # #           data=private_key_bytes,
-          # #           password=None
-          # #     )
-              
-          #     private_key_bytes = base64.b64decode(private_key) 
-              
-          # except Exception as e:
-          #     private_key_bytes = private_key.encode()
-          #     cert_type = 'PEM'
-          
-              
+     
           return private_key_bytes, cert_type
     
     
+    def _create_version_specific_cert_policy(self, cert_type, cert_policy: CertificatePolicy):
+          """
+          Cert Policy is needed during importing of certs, specifically when 1 cert has multiple Versions with each version,
+          having different cert type.
+          
+          Common scneario is when 1 cert has all versions with same cert type be it all PEM or all PFX.
+          Since key vault allows same cert have different cert type for each version, this logic also need to support this edge case.
+          
+          The challenge is key vault SDK only returns cert cert for the latest cert version, regardless of previous versions having different cert types.
+          "import_certificate" function will throw an error as it uses the cert type of "first import cert",
+          therefore, subsequent versions of differernt cert type will encounter error.
+          """
+          cp = CertificatePolicy(cert_policy.issuer_name)
+
+          cp.__dict__.update(cert_policy.__dict__)
+          
+          if cert_type == 'PFX':
+               setattr(cp, '_content_type', CertificateContentType.pkcs12)
+          else:
+               setattr(cp, '_content_type', CertificateContentType.pem)
+
+          return cp
 
     def _is_secret_private_key_created_by_cert(self, content_type: str):
         if content_type in ['application/x-pkcs12', 'application/x-pem-file']:

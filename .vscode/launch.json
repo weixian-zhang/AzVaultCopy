@@ -10,9 +10,11 @@
             "name": "debug app",
             "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}\\src\\azvc.py",
+            "program": "${workspaceFolder}\\src\\main.py",
             "console": "integratedTerminal",
-            "args": ["--src_vault", "akv-export", "--dest_vault", "akv-temp-3", "--export_dir", "%USERPROFILE%\\desktop\\export"]
+            "args": ["--src_vault", "akv-export", "--dest_vault", "akv-temp-3",
+
+            "-ed", "%USERPROFILE%\\desktop\\export"]
         }
     ]
 }
