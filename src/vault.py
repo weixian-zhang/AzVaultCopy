@@ -186,41 +186,55 @@ class VaultManager:
     
 
     def import_certs(self, src_vault: SourceKeyVault, dest_vault: DestinationVault) -> list[CertVersion]:
-         """
-         - import will be ignored if dest vault contains object with same name
-         - if dest vault contains same object name, and --ignore-import-if-exists is set to True, 
-           will import object to dest vault causing a new version to be created
-         """
+          """
+          - import will be ignored if dest vault contains object with same name
+          - if dest vault contains same object name, and --ignore-import-if-exists is set to True, 
+               will import object to dest vault causing a new version to be created
+          """
          
-         log.info('begin importing certs')
+          log.info('begin importing certs')
+
          
-         imported_version_result = []
+          imported_version_result = []
 
-         for cert in src_vault.certs:
+          for cert in src_vault.certs:
+               try:
 
-            if self.config.no_import_if_dest_exist and cert.name in dest_vault.cert_names:
-                   log.warn(f'Cert {cert.name} is found in dest vault {dest_vault.name}, import is ignored with --no_import_if_dest_exist flag on')
-                   continue
-            
-            if cert.name in dest_vault.deleted_cert_names:
-              log.warn(f'cert {cert.name} is found in dest vault {dest_vault.name} as deleted, import is ignored')
-              continue
-              
-            for version in cert.versions:
-                
-                #log.info(f'importing cert: {cert.name} version: {version.version}')
-                
-                self.dest_cert_client.import_certificate(cert.name, version.cert, policy=version.cert_policy,
-                                                         enabled=version.enable, tags=version.tags)
-                
-                imported_version_result.append(version)
+                    if self.config.no_import_if_dest_exist and cert.name in dest_vault.cert_names:
+                         log.warn(f'cert {cert.name} is found in dest vault {dest_vault.name}, import is ignored with --no_import_if_dest_exist flag on', 'ImportCert')
+                         continue
+                    
+                    if cert.name in dest_vault.deleted_cert_names:
+                         log.warn(f'cert {cert.name} is found in dest vault {dest_vault.name} as deleted, import is ignored', 'ImportCert')
+                         continue
+                    
+                    for version in cert.versions:
 
-                log.info(f'imported Cert: {cert.name} with version: {version.version} is successful')
+                         try:
+                         
+                              self.dest_cert_client.import_certificate(cert.name, version.cert, policy=version.cert_policy,
+                                                                      enabled=version.enable, tags=version.tags)
+                              imported_version_result.append(version)
 
-         log.info('import certs completed')
+                              log.info(f'Cert: {cert.name} with version: {version.version} is successful', 'ImportCert')
+                              
+                         except Exception as e:
+                              err = str(e).lower()
+                              if 'no certificate with private key' in err or 'private key is not' in err:
+                                   log.warn(f'cert {cert.name} of version {version.version} is not Exportable and has no private key, ignoring import', 'ImportCert')
+                              else:
+                                   log.err(f'error when importing cert {cert.name} of version {version.version} {e}', 'ImportCert')
+                         
 
-         return imported_version_result
+               except Exception as e:
+                    log.err(f'error when importing cert {cert.name} {e}', 'ImportCert')
 
+
+          log.info('import certs completed', 'ImportCert')
+
+          return imported_version_result
+         
+         
 
     def import_secrets(self, src_vault: SourceKeyVault, dest_vault: DestinationVault):
          """
@@ -229,37 +243,47 @@ class VaultManager:
            will import object to dest vault causing a new version to be created
          """
          
-         log.info('begin import secrets')
+         log.info('begin import secrets', 'ImportSecret')
 
          imported_version_result = []
 
          for secret in src_vault.secrets:
               
-              if self.config.no_import_if_dest_exist and secret.name in dest_vault.secret_names:
-                   log.warn(f'secret {secret.name} is found in dest vault {dest_vault.name}, import is ignored with --no_import_if_dest_exist flag on')
-                   continue
-
-              if secret.name in dest_vault.deleted_secret_names:
-                   log.warn(f'secret {secret.name} is found in dest vault {dest_vault.name} as deleted, import is ignored')
-                   continue
-
-              for version in secret.versions:
+               try:
                    
-                   #log.info(f'importing secret: {secret.name} version: {version.version}')
+                    if self.config.no_import_if_dest_exist and secret.name in dest_vault.secret_names:
+                         log.warn(f'secret {secret.name} is found in dest vault {dest_vault.name}, import is ignored with --no_import_if_dest_exist flag on', 'ImportSecret')
+                         continue
 
-                   self.dest_secret_client.set_secret(secret.name, 
-                                                      version.value,
-                                                      content_type=version.content_type,
-                                                      enabled=version.enabled,
-                                                      expires_on=version.expires_on,
-                                                      not_before=version.activates_on,
-                                                      tags=version.tags)
-                   
-                   imported_version_result.append(version)
+                    if secret.name in dest_vault.deleted_secret_names:
+                         log.warn(f'secret {secret.name} is found in dest vault {dest_vault.name} as deleted, import is ignored', 'ImportSecret')
+                         continue
 
-                   log.info(f'imported Secret: {secret.name} version: {version.version} is successful')
+                    for version in secret.versions:
+                         
+                              try:
+                                   self.dest_secret_client.set_secret(secret.name, 
+                                                                      version.value,
+                                                                      content_type=version.content_type,
+                                                                      enabled=version.enabled,
+                                                                      expires_on=version.expires_on,
+                                                                      not_before=version.activates_on,
+                                                                      tags=version.tags)
+                                   
+                                   imported_version_result.append(version)
+
+                                   log.info(f'imported Secret: {secret.name} version: {version.version} is successful')
+
+                              except Exception as e:
+                                   log.err(f'error when importing secret {secret.name} of version {version.version} {e}', 'ImportSecret')
+
+               except Exception as e:
+                    log.err(f'error when importing secret {secret.name}. {e}', 'ImportSecret')
+
 
          log.info('import secrets completed')
+
+         return imported_version_result
 
 
 
