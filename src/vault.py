@@ -46,17 +46,18 @@ class VaultManager:
 
             cert = Cert(cert_prop.name, cert_prop.tags)
 
+            cert_policy = self.src_cert_client.get_certificate_policy(cert_prop.name)
+
+            if not cert_policy.exportable:
+               log.warn(f'Cert {cert.name} of version {version.version} is marked Not Exportable, ignoring')
+               continue
+
             for version in self.src_cert_client.list_properties_of_certificate_versions(cert_prop.name):
                 
                 if not version.enabled:
                      log.warn(f'Cert {cert.name} of version {version.version} is not enabled, ignoring')
                      continue
                 
-                cert_policy = self.src_cert_client.get_certificate_policy(cert_prop.name)
-
-                if not cert_policy.exportable:
-                     log.warn(f'Cert {cert.name} of version {version.version} is marked Not Exportable, ignoring')
-                     continue
                 
                 if self._is_object_expired(version.expires_on):
                      log.warn(f'Cert {cert.name} of version {version.version} was expired on {Util.friendly_date_str(version.expires_on)}, ignoring')
@@ -65,7 +66,7 @@ class VaultManager:
 
                 # private key stored as secret
                 private_key_b64 = self.src_secret_client.get_secret(version.name, version.version).value
-                
+
                 private_key_bytes, decoded_cert_type = self._decode_private_key(private_key_b64)
 
                 version_cert_policy = self._create_version_specific_cert_policy(decoded_cert_type, cert_policy)
