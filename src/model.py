@@ -3,7 +3,7 @@ from datetime import datetime
 
 
 class CertVersion:
-    def __init__(self, cert_name, version, cert, type, cert_policy, expires_on, created_on, enable, tags) -> None:
+    def __init__(self, cert_name, version, cert, type, cert_policy, expires_on, created_on, enable, tags={}) -> None:
         self.cert_name = cert_name
         self.version = version
         self.cert: bytes = cert # public + private + additional keys
@@ -12,16 +12,16 @@ class CertVersion:
         self.expires_on : datetime = expires_on
         self.created_on = created_on
         self.enable = enable
-        self.tags: dict = tags if tags else {}
+        self.tags: dict = tags
 
 class Cert:
-    def __init__(self, name, tags) -> None:
+    def __init__(self, name, tags = {}) -> None:
         self.name = name
         self.versions : list[CertVersion] = []
-        self.tags = tags if tags else {}
+        self.tags = tags
 
 class SecretVersion:
-    def __init__(self, secret_name, version, value, content_type, expires_on, activates_on, created_on, enabled, tags) -> None:
+    def __init__(self, secret_name, version, value, content_type, expires_on, activates_on, created_on, enabled, tags={}) -> None:
         self.secret_name = secret_name
         self.version = version
         self.value = value
@@ -30,13 +30,13 @@ class SecretVersion:
         self.activates_on = activates_on
         self.created_on = created_on
         self.enabled= enabled
-        self.tags = tags if tags else {}
+        self.tags = tags
 
 class Secret:
-    def __init__(self, name, tags) -> None:
+    def __init__(self, name, tags = {}) -> None:
         self.name = name
         self.versions : list[SecretVersion] = []
-        self.tags = tags if tags else {}
+        self.tags = tags
 
 class SourceKeyVault:
 
