@@ -1,8 +1,7 @@
-import pytest
 from unittest.mock import patch, Mock
 from config import Config
 from vault import VaultManager
-from azure.keyvault.certificates import CertificateContentType, CertificatePolicy, CertificateProperties
+from azure.keyvault.certificates import CertificateContentType
 from datetime import datetime
 import os
 import base64
@@ -25,16 +24,6 @@ with open(os.path.join(cwd, 'cert.pem'), "r") as f:
 with open(os.path.join(cwd, 'cert_public_key_only.pem'), "r") as f:
     pem_cert_public_key_only = f.read()
 
-# def throw_err_on_2nd_iteration():
-#   yield 1
-#   raise Exception('no certificate with private key private key is not')
-
-# global_side_effect_throw_err_on_2nd_iteration = throw_err_on_2nd_iteration()
-
-# def side_effect_throw_err_on_2nd_iteration():
-#     global global_side_effect_throw_err_on_2nd_iteration
-#     for x in global_side_effect_throw_err_on_2nd_iteration:
-#         return x
 
 class TestVaultCerts:
     """
@@ -62,7 +51,7 @@ class TestVaultCerts:
         5. ignore destination vault certs that were deleted
 
 
-        6. with 2 cert versions, export only 1 version with conditions:
+        6. out of 2 cert versions, export 1 version that is not Expired:
           - export 1 version that is Expired
           - ignore 1 version that is Not Expired
 
@@ -81,6 +70,10 @@ class TestVaultCerts:
            To support importing older versions for completeness, when importing older versions that is Not Exportable,
            catch exception thrown by CertificateClient.import_certificate with error: 
            "No private key is found" to determine if older cert versions are exportable or not
+        
+        9. ignore import if --no_import_if_dest_exist flag is True
+
+        10. ignore import if cert is deleted at dest vault
 
     """
 
@@ -456,6 +449,118 @@ class TestVaultCerts:
           result = vm.import_certs(src_vault=src_vault, dest_vault=dest_vault)
           
           assert len(result) == 0
+
+
+    def test_9_ignore_import_if_No_Import_If_Dest_Exist_Flag_is_True(self):
+        """
+        9. ignore import if --no_import_if_dest_exist flag is True
+        """
+        
+        config.no_import_if_dest_exist = True
+
+        src_vault = SourceKeyVault('src-vault')
+
+        # cert 1, exists in dest vault and should be ignored
+        cert_1 = Cert('cert-1')
+
+        cert_policy_1 = Mock()
+        cert_policy_1.exportable = True
+        cert_policy_1._content_type = CertificateContentType.pkcs12
+        cert_policy_1.content_type = CertificateContentType.pkcs12
+
+
+        version_1 = CertVersion('cert-1', 'v1', pem_cert, 'PEM', cert_policy=cert_policy_1, 
+                                expires_on=datetime(2026,9,1), created_on=datetime(2024,1,1, 1, 0, 0),enable=True, tags={} )
+
+        
+        cert_1.versions.append(version_1)
+
+
+        # cert 2, should be imported
+        cert_2 = Cert('cert-2')
+
+        cert_policy_2 = Mock()
+        cert_policy_2.exportable = True
+        cert_policy_2._content_type = CertificateContentType.pkcs12
+        cert_policy_2.content_type = CertificateContentType.pkcs12
+
+
+        version_2 = CertVersion('cert-1', 'v1', pem_cert, 'PEM', cert_policy=cert_policy_2, 
+                                expires_on=datetime(2026,9,1), created_on=datetime(2024,1,1, 1, 0, 0),enable=True, tags={} )
+
+        cert_2.versions.append(version_2)
+
+
+        src_vault.certs.append(cert_1)
+        src_vault.certs.append(cert_2)
+
+
+        # dest vault prep
+
+        dest_vault = DestinationVault('src-vault')
+        dest_vault.cert_names = ['cert-1']
+
+        
+        with patch("azure.keyvault.certificates.CertificateClient.import_certificate") as import_certificate:   
+
+          result = vm.import_certs(src_vault=src_vault, dest_vault=dest_vault)
+          
+          assert len(result) == 1
+
+
+    
+    def test_10_ignore_import_if_cert_is_deleted_at_dest_vault(self):
+        """
+        10. ignore import if cert is deleted at dest vault
+        """
+        
+        config.no_import_if_dest_exist = True
+
+        src_vault = SourceKeyVault('src-vault')
+
+        # cert 1, exists in dest vault and should be ignored
+        cert_1 = Cert('cert-1')
+
+        cert_policy_1 = Mock()
+        cert_policy_1.exportable = True
+        cert_policy_1._content_type = CertificateContentType.pkcs12
+        cert_policy_1.content_type = CertificateContentType.pkcs12
+
+
+        version_1 = CertVersion('cert-1', 'v1', pem_cert, 'PEM', cert_policy=cert_policy_1, 
+                                expires_on=datetime(2026,9,1), created_on=datetime(2024,1,1, 1, 0, 0),enable=True, tags={} )
+        cert_1.versions.append(version_1)
+
+
+        # cert 2, should be imported
+        cert_2 = Cert('cert-2')
+
+        cert_policy_2 = Mock()
+        cert_policy_2.exportable = True
+        cert_policy_2._content_type = CertificateContentType.pkcs12
+        cert_policy_2.content_type = CertificateContentType.pkcs12
+
+
+        version_2 = CertVersion('cert-1', 'v1', pem_cert, 'PEM', cert_policy=cert_policy_2, 
+                                expires_on=datetime(2026,9,1), created_on=datetime(2024,1,1, 1, 0, 0),enable=True, tags={})
+        cert_2.versions.append(version_2)
+
+
+        src_vault.certs.append(cert_1)
+        src_vault.certs.append(cert_2)
+
+        # dest vault prep
+
+        dest_vault = DestinationVault('src-vault')
+        dest_vault.deleted_cert_names = ['cert-1']
+
+        
+        with patch("azure.keyvault.certificates.CertificateClient.import_certificate") as import_certificate:   
+          #import_certificate.side_effect = Exception('no certificate with private key private key is not')
+
+          result = vm.import_certs(src_vault=src_vault, dest_vault=dest_vault)
+          
+          assert len(result) == 1
 
     
 
