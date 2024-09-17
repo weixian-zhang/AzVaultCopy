@@ -42,14 +42,15 @@ class VaultManager:
         for cert_prop in self.src_cert_client.list_properties_of_certificates():
             
             if not cert_prop.enabled:
-                log.warn(f'Cert {cert.name} is not enabled, ignoring')
+                log.warn(f'Cert {cert_prop.name} is not enabled, ignoring')
+                continue
 
             cert = Cert(cert_prop.name, cert_prop.tags)
 
             cert_policy = self.src_cert_client.get_certificate_policy(cert_prop.name)
 
             if not cert_policy.exportable:
-               log.warn(f'Cert {cert.name} of version {version.version} is marked Not Exportable, ignoring')
+               log.warn(f'Cert {cert.name} is marked Not Exportable, ignoring')
                continue
 
             for version in self.src_cert_client.list_properties_of_certificate_versions(cert_prop.name):
