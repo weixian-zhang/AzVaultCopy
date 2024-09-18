@@ -15,7 +15,7 @@ class Config:
 
     def __init__(self,src_vault_name, dest_vault_name, 
                  src_token='', dest_token='', export_dir='', 
-                 export_only=False, no_import_if_dest_exist=False) -> None:
+                 export_only=False, no_import_if_dest_exist=False, timezone = 'Asia/Kuala_Lumpur') -> None:
         
         self.src_token = os.environ.get('src_token') if not src_token else src_token
         self.dest_token = os.environ.get('dest_token') if not dest_token else dest_token
@@ -30,6 +30,8 @@ class Config:
         
         self.source_azure_cred = ExistingTokenCredential(self.src_token)
         self.dest_azure_cred =  ExistingTokenCredential(self.dest_token)
+
+        self.timezone = timezone
 
 
     def get_src_vault_url(self):

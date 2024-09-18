@@ -1,4 +1,4 @@
-from model import SourceKeyVault, DestinationVault
+from model import SourceKeyVault, DestinationVault, RunContext
 from vault import VaultManager
 from config import Config
 from log import log
@@ -8,11 +8,14 @@ class ExportImporter:
     
     def __init__(self, config: Config) -> None:
         self.config = config
-        self.vm = VaultManager(config)
+        self.run_context = RunContext(config)
+        self.vm = VaultManager(config, self.run_context)
         self.sv = SourceKeyVault(config.src_vault_name)
         self.dv = DestinationVault(config.dest_vault_name)
 
     def run(self):
+
+        self.run_context.track_started_on()
         
         self.export_from_source_vault()
 
@@ -22,6 +25,10 @@ class ExportImporter:
         if not self.config.export_only:
             self.export_from_dest_vault()
             self.import_to_dest_vault()
+
+        self.run_context.track_ended_on()
+
+        pass
 
 
     def export_from_source_vault(self):

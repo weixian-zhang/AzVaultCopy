@@ -5,7 +5,7 @@ from azure.keyvault.secrets import SecretClient
 from config import Config
 import base64 
 from datetime import datetime
-from model import Cert, CertVersion, Secret, SecretVersion, SourceKeyVault, DestinationVault
+from model import Cert, CertVersion, RunContext, Secret, SecretVersion, SourceKeyVault, DestinationVault
 from pytz import timezone
 from log import log
 from util import Util
@@ -14,9 +14,16 @@ from util import Util
 # https://github.com/Azure/azure-sdk-for-python/blob/main/sdk/keyvault/azure-keyvault-certificates/samples/parse_certificate.py
 # https://stackoverflow.com/questions/58313018/how-to-get-private-key-from-certificate-in-an-azure-key-vault
 class VaultManager:
+    """
+     * AKV SDK throws error on the following conditions:
+          - import expired cert
+          - get secret private key when cert is Disabled
+          - cert that is not Exportable, secret wil only contains public key. Import cert without private key will throw error
+    """
     
-    def __init__(self, config: Config) -> None:
+    def __init__(self, config: Config, run_context: RunContext) -> None:
         self.config = config
+        self.run_context = run_context
 
         self.src_cert_client = CertificateClient(config.get_src_vault_url(), config.source_azure_cred)
         self.src_secret_client = SecretClient(config.get_src_vault_url(), config.source_azure_cred)
@@ -41,6 +48,8 @@ class VaultManager:
 
         for cert_prop in self.src_cert_client.list_properties_of_certificates():
             
+            self.run_context.total_certs += 1
+            
             if not cert_prop.enabled:
                 log.warn(f'Cert {cert_prop.name} is not enabled, ignoring')
                 continue
@@ -54,6 +63,8 @@ class VaultManager:
                continue
 
             for version in self.src_cert_client.list_properties_of_certificate_versions(cert_prop.name):
+                
+                self.run_context.track_total_cert_version_to_be_exported(cert_prop.name) # report
                 
                 if not version.enabled:
                      log.warn(f'Cert {cert.name} of version {version.version} is not enabled, ignoring')
@@ -85,10 +96,15 @@ class VaultManager:
                cert.versions = sorted(cert.versions, key=lambda x: x.created_on)
                result.append(cert)
 
+               self.run_context.track_exported_cert_version(cert_prop.name, len(cert.versions)) # report
+
         log.info('export certs completed')
+
+        self.run_context.exported_certs = len(result) # report
 
         return result
     
+   
 
     def list_secrets_from_src_vault(self) -> list[Secret]:
         """
@@ -107,23 +123,27 @@ class VaultManager:
         result = []
 
         for secret in self.src_secret_client.list_properties_of_secrets():
-
-            vault_secret = Secret(secret.name, secret.tags)
+            
+            if self._is_secret_private_key_created_by_cert(secret.content_type):
+                continue
+            
+            self.run_context.total_secrets += 1   # report
 
             if not secret.enabled:
                 log.warn(f'Secret {secret.name} of version {version.version} is not enabled, ignoring')
                 continue
             
-            if self._is_secret_private_key_created_by_cert(secret.content_type):
-                continue
-
+            vault_secret = Secret(secret.name, secret.tags)
+            
             for version in self.src_secret_client.list_properties_of_secret_versions(secret.name):
+                
+                self.run_context.track_total_secret_version_to_be_exported(secret.name) # report
               
                 if not version.enabled:
                     log.warn(f'Secret {secret.name} of version {version.version} is not enabled, ignoring')
                     continue
                 
-                if version.expires_on and self._is_object_expired(version.expires_on):
+                if self._is_object_expired(version.expires_on):
                      log.warn(f'Secret {secret.name} of version {version.version} was expired on {Util.friendly_date_str(version.expires_on)}, ignoring')
                      continue
                 
@@ -142,7 +162,11 @@ class VaultManager:
                vault_secret.versions = sorted(vault_secret.versions, key = lambda x: x.created_on)
                result.append(vault_secret)
 
+               self.run_context.track_exported_secret_version(secret.name, len(vault_secret.versions)) # report
+
         log.info('export secrets completed')
+
+        self.run_context.exported_secrets = len(result) # report
 
         return result
     
@@ -197,9 +221,10 @@ class VaultManager:
           log.info('begin importing certs')
 
          
-          imported_version_result = []
+          imported_version_result = [] # for unit testing
 
           for cert in src_vault.certs:
+
                try:
 
                     if self.config.no_import_if_dest_exist and cert.name in dest_vault.cert_names:
@@ -218,6 +243,8 @@ class VaultManager:
                                                                       enabled=version.enable, tags=version.tags)
                               imported_version_result.append(version)
 
+                              self.run_context.track_imported_cert_version(cert.name, 1) # report
+
                               log.info(f'Cert: {cert.name} with version: {version.version} is successful', 'ImportCert')
                               
                          except Exception as e:
@@ -226,7 +253,10 @@ class VaultManager:
                                    log.warn(f'cert {cert.name} of version {version.version} is not Exportable and has no private key, ignoring import', 'ImportCert')
                               else:
                                    log.err(f'error when importing cert {cert.name} of version {version.version} {e}', 'ImportCert')
-                         
+
+
+                    if self.run_context.is_cert_having_version_imported(cert.name): # report
+                         self.run_context.imported_certs += 1 
 
                except Exception as e:
                     log.err(f'error when importing cert {cert.name} {e}', 'ImportCert')
@@ -274,16 +304,23 @@ class VaultManager:
                                    
                                    imported_version_result.append(version)
 
+                                   self.run_context.track_imported_secret_version(secret.name, 1) # report
+
                                    log.info(f'imported Secret: {secret.name} version: {version.version} is successful')
 
                               except Exception as e:
                                    log.err(f'error when importing secret {secret.name} of version {version.version} {e}', 'ImportSecret')
+
+
+                    if self.run_context.is_secret_having_version_imported(secret.name): # report
+                         self.run_context.imported_secrets += 1 
 
                except Exception as e:
                     log.err(f'error when importing secret {secret.name}. {e}', 'ImportSecret')
 
 
          log.info('import secrets completed')
+
 
          return imported_version_result
 
@@ -348,6 +385,8 @@ class VaultManager:
 
         
     def _is_object_expired(self, expires_on):
+         if not expires_on:
+              return False
          
          if self._as_utc_8(datetime.now()) >= self._as_utc_8(expires_on):
               return True
@@ -355,7 +394,7 @@ class VaultManager:
 
 
     def _as_utc_8(self, d: datetime):
-         return d.astimezone(timezone('Asia/Kuala_Lumpur'))
+         return d.astimezone(timezone(self.config.timezone))
                 
 
      
