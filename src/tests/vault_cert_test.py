@@ -5,10 +5,11 @@ from azure.keyvault.certificates import CertificateContentType
 from datetime import datetime
 import os
 import base64
-from model import SourceKeyVault, DestinationVault, Cert, CertVersion
+from model import SourceKeyVault, DestinationVault, Cert, CertVersion, RunContext
 
 config = Config(src_vault_name='akv-export', dest_vault_name='akv-temp-3')
-vm = VaultManager(config)
+run_context = RunContext(config)
+vm = VaultManager(config, run_context)
 
 pfx_cert = b''
 pem_cert = b''
@@ -62,14 +63,17 @@ class TestVaultCerts:
         8. during import, able to handle if an older version has No Private Key with only Public Key,
            due to cert version is marked Not Exportable.
            
-           *note: AKV SDK only returns CertificatePolicy.exportable for the latest version,
-           rest of older versions has no way to determine if Exportable or not.
-           If a cert is Not Exportable, the secret-private-key will only contains Public Key.
-           This will post an issue during import-certificate which AKV expects any cert pem/pfx to have private key
+           Note:
+           
+            AKV SDK only returns CertificatePolicy.exportable for the latest version,
+            rest of older versions has no way to determine if Exportable or not.
+            If a cert is Not Exportable, the secret-private-key will only contains Public Key.
+            This will post an issue during import-certificate which AKV expects any cert pem/pfx to have private key
 
-           To support importing older versions for completeness, when importing older versions that is Not Exportable,
-           catch exception thrown by CertificateClient.import_certificate with error: 
-           "No private key is found" to determine if older cert versions are exportable or not
+            To support importing older versions for completeness, when importing older versions that is Not Exportable,
+            catch exception thrown by CertificateClient.import_certificate with error: 
+            "No private key is found" to determine if older cert versions are exportable or not
+
         
         9. ignore import if --no_import_if_dest_exist flag is True
 

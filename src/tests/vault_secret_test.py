@@ -1,11 +1,12 @@
 from unittest.mock import patch, Mock
 from config import Config
 from vault import VaultManager
-from model import SourceKeyVault, DestinationVault, Secret, SecretVersion
+from model import SourceKeyVault, DestinationVault, Secret, SecretVersion, RunContext
 from datetime import datetime
 
 config = Config(src_vault_name='akv-export', dest_vault_name='akv-temp-3')
-vm = VaultManager(config)
+run_context = RunContext(config)
+vm = VaultManager(config, run_context)
 
 
 class TestVaultSecret:

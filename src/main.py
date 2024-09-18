@@ -27,7 +27,10 @@ from log import log
 @click.option('--no_import_if_dest_exist', '-ii', is_flag=True, help='''any cert or secret with same name at dest vault will not be imported\n
               * When importing an object with the same name, vault will create a new version.
               ''')
-def run(src_vault, dest_vault, src_token, dest_token, export_dir='',export_only=False, no_import_if_dest_exist=False):
+@click.option('--timezone', '-tz', default='Asia/Kuala_Lumpur', help='''Python timezone name to localize datetime\n
+              https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
+              ''')
+def run(src_vault, dest_vault, src_token, dest_token, export_dir='',export_only=False, no_import_if_dest_exist=False, timezone='Asia/Kuala_Lumpur'):
     try:
          config = Config(src_vault, dest_vault, src_token, dest_token, export_dir, export_only, no_import_if_dest_exist)
          ei = ExportImporter(config)
