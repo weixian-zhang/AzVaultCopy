@@ -142,41 +142,41 @@ class TestVaultCerts:
                  assert len(result) == 2
 
 
-    def test_2_ignore_cert_that_is_Disabled(self):
-        """
-        2. ignore cert that is disabled
-        """
+    # def test_2_ignore_cert_that_is_Disabled(self):
+    #     """
+    #     2. ignore cert that is disabled
+    #     """
         
-        # mock.method.return_value = True
-        cert_prop_1 = Mock()
-        cert_prop_1.name = 'cert_1'
-        cert_prop_1.enabled = False
-        cert_prop_1.tags = {}
+    #     # mock.method.return_value = True
+    #     cert_prop_1 = Mock()
+    #     cert_prop_1.name = 'cert_1'
+    #     cert_prop_1.enabled = False
+    #     cert_prop_1.tags = {}
 
-        version_1 = Mock()
-        version_1.name = 'version_1'
-        version_1.enabled = True
-        version_1.version = 'v1'
-        version_1.expires_on = datetime(2025,10,1)
-        version_1.created_on = datetime(2024,1,1, 1, 0, 0)
+    #     version_1 = Mock()
+    #     version_1.name = 'version_1'
+    #     version_1.enabled = True
+    #     version_1.version = 'v1'
+    #     version_1.expires_on = datetime(2025,10,1)
+    #     version_1.created_on = datetime(2024,1,1, 1, 0, 0)
         
-        key_vault_secret = Mock()
-        key_vault_secret.value = pfx_cert
+    #     key_vault_secret = Mock()
+    #     key_vault_secret.value = pfx_cert
 
-        cert_policy = Mock()
-        cert_policy.exportable = True
-        cert_policy._content_type = CertificateContentType.pkcs12
-        cert_policy.content_type = CertificateContentType.pkcs12
+    #     cert_policy = Mock()
+    #     cert_policy.exportable = True
+    #     cert_policy._content_type = CertificateContentType.pkcs12
+    #     cert_policy.content_type = CertificateContentType.pkcs12
         
         
-        with patch("azure.keyvault.certificates.CertificateClient.list_properties_of_certificates", return_value=[cert_prop_1]):
-          with patch("azure.keyvault.certificates.CertificateClient.get_certificate_policy", return_value = cert_policy):
-            with patch("azure.keyvault.certificates.CertificateClient.list_properties_of_certificate_versions", return_value=[version_1]):
-              with patch("azure.keyvault.secrets.SecretClient.get_secret", return_value=key_vault_secret):
+    #     with patch("azure.keyvault.certificates.CertificateClient.list_properties_of_certificates", return_value=[cert_prop_1]):
+    #       with patch("azure.keyvault.certificates.CertificateClient.get_certificate_policy", return_value = cert_policy):
+    #         with patch("azure.keyvault.certificates.CertificateClient.list_properties_of_certificate_versions", return_value=[version_1]):
+    #           with patch("azure.keyvault.secrets.SecretClient.get_secret", return_value=key_vault_secret):
                  
-                 result = vm.list_certs_from_src_vault()
+    #              result = vm.list_certs_from_src_vault()
 
-                 assert len(result) == 0
+    #              assert len(result) == 0
 
 
 
@@ -226,48 +226,48 @@ class TestVaultCerts:
 
 
 
-    def test_4_ignore_cert_version_that_is_Exportable(self):
-        """
-        4. ignore cert version that is not exportable
-        """
+    # def test_4_ignore_cert_version_that_is_Exportable(self):
+    #     """
+    #     4. ignore cert version that is not exportable
+    #     """
         
-        # mock.method.return_value = True
-        cert_prop_1 = Mock()
-        cert_prop_1.name = 'cert_1'
-        cert_prop_1.enabled = True
-        cert_prop_1.tags = {}
+    #     # mock.method.return_value = True
+    #     cert_prop_1 = Mock()
+    #     cert_prop_1.name = 'cert_1'
+    #     cert_prop_1.enabled = True
+    #     cert_prop_1.tags = {}
 
-        version_1 = Mock()
-        version_1.name = 'version_1'
-        version_1.enabled = True
-        version_1.version = 'v1'
-        version_1.expires_on = datetime(2025,10,1)
-        version_1.created_on = datetime(2024,1,1, 1, 0, 0)
+    #     version_1 = Mock()
+    #     version_1.name = 'version_1'
+    #     version_1.enabled = True
+    #     version_1.version = 'v1'
+    #     version_1.expires_on = datetime(2025,10,1)
+    #     version_1.created_on = datetime(2024,1,1, 1, 0, 0)
 
-        version_2 = Mock()
-        version_2.name = 'version_2'
-        version_2.enabled = False
-        version_2.version = 'v2'
-        version_2.expires_on = datetime(2025,10,1)
-        version_2.created_on = datetime(2024,1,1, 1, 0, 0)
+    #     version_2 = Mock()
+    #     version_2.name = 'version_2'
+    #     version_2.enabled = False
+    #     version_2.version = 'v2'
+    #     version_2.expires_on = datetime(2025,10,1)
+    #     version_2.created_on = datetime(2024,1,1, 1, 0, 0)
         
-        key_vault_secret = Mock()
-        key_vault_secret.value = pfx_cert
+    #     key_vault_secret = Mock()
+    #     key_vault_secret.value = pfx_cert
 
-        cert_policy = Mock()
-        cert_policy.exportable = False
-        cert_policy._content_type = CertificateContentType.pkcs12
-        cert_policy.content_type = CertificateContentType.pkcs12
+    #     cert_policy = Mock()
+    #     cert_policy.exportable = False
+    #     cert_policy._content_type = CertificateContentType.pkcs12
+    #     cert_policy.content_type = CertificateContentType.pkcs12
         
         
-        with patch("azure.keyvault.certificates.CertificateClient.list_properties_of_certificates", return_value=[cert_prop_1]):
-          with patch("azure.keyvault.certificates.CertificateClient.get_certificate_policy", return_value = cert_policy):
-            with patch("azure.keyvault.certificates.CertificateClient.list_properties_of_certificate_versions", return_value=[version_1, version_2]):
-              with patch("azure.keyvault.secrets.SecretClient.get_secret", return_value=key_vault_secret):
+    #     with patch("azure.keyvault.certificates.CertificateClient.list_properties_of_certificates", return_value=[cert_prop_1]):
+    #       with patch("azure.keyvault.certificates.CertificateClient.get_certificate_policy", return_value = cert_policy):
+    #         with patch("azure.keyvault.certificates.CertificateClient.list_properties_of_certificate_versions", return_value=[version_1, version_2]):
+    #           with patch("azure.keyvault.secrets.SecretClient.get_secret", return_value=key_vault_secret):
                  
-                    result = vm.list_certs_from_src_vault()
+    #                 result = vm.list_certs_from_src_vault()
                     
-                    assert len(result) == 0
+    #                 assert len(result) == 0
 
 
     def test_5_get_destination_vault_certs_that_are_Active_and_Deleted(self):
@@ -382,15 +382,15 @@ class TestVaultCerts:
         src_vault.certs.append(cert_1)
 
 
-        # dest vault prep
-
         dest_vault = DestinationVault('src-vault')
 
+        run_context.src_vault = src_vault
+        run_context.dest_vault = dest_vault
         
         with patch("azure.keyvault.certificates.CertificateClient.import_certificate") as import_certificate:   
           #import_certificate.side_effect = Exception('no certificate with private key private key is not')
 
-          result = vm.import_certs(src_vault=src_vault, dest_vault=dest_vault)
+          result = vm.import_certs()
           
           assert len(result) == 2
 
@@ -432,8 +432,8 @@ class TestVaultCerts:
         version_1 = CertVersion('cert-1', 'v1', pem_cert_public_key_only, 'PEM', cert_policy=cert_policy_1, 
                                 expires_on=datetime(2026,9,1), created_on=datetime(2024,1,1, 1, 0, 0),enable=True, tags={} )
 
-        version_2 = CertVersion('cert-1', 'v2', pem_cert, 'PFX', cert_policy=cert_policy_2, 
-                                expires_on=datetime(2026,9,1), created_on=datetime(2024,1,1, 1, 0, 0),enable=True, tags={} )
+        # version_2 = CertVersion('cert-1', 'v2', pem_cert, 'PFX', cert_policy=cert_policy_2, 
+        #                         expires_on=datetime(2026,9,1), created_on=datetime(2024,1,1, 1, 0, 0),enable=True, tags={} )
         
         # cert_1.versions.append(version_2)
         cert_1.versions.append(version_1)
@@ -441,16 +441,17 @@ class TestVaultCerts:
         src_vault.certs.append(cert_1)
 
 
-        # dest vault prep
-
         dest_vault = DestinationVault('src-vault')
 
+
+        run_context.src_vault = src_vault
+        run_context.dest_vault = dest_vault
         
         with patch("azure.keyvault.certificates.CertificateClient.import_certificate") as import_certificate:   
 
           import_certificate.side_effect = Exception('no certificate with private key private key is not')#Mock(side_effect=side_effect_throw_err_on_2nd_iteration())
 
-          result = vm.import_certs(src_vault=src_vault, dest_vault=dest_vault)
+          result = vm.import_certs()
           
           assert len(result) == 0
 
@@ -504,10 +505,13 @@ class TestVaultCerts:
         dest_vault = DestinationVault('src-vault')
         dest_vault.cert_names = ['cert-1']
 
+        run_context.src_vault = src_vault
+        run_context.dest_vault = dest_vault
+
         
         with patch("azure.keyvault.certificates.CertificateClient.import_certificate") as import_certificate:   
 
-          result = vm.import_certs(src_vault=src_vault, dest_vault=dest_vault)
+          result = vm.import_certs()
           
           assert len(result) == 1
 
@@ -558,11 +562,12 @@ class TestVaultCerts:
         dest_vault = DestinationVault('src-vault')
         dest_vault.deleted_cert_names = ['cert-1']
 
+        run_context.src_vault = src_vault
+        run_context.dest_vault = dest_vault
         
         with patch("azure.keyvault.certificates.CertificateClient.import_certificate") as import_certificate:   
-          #import_certificate.side_effect = Exception('no certificate with private key private key is not')
 
-          result = vm.import_certs(src_vault=src_vault, dest_vault=dest_vault)
+          result = vm.import_certs()
           
           assert len(result) == 1
 

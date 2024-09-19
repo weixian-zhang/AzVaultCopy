@@ -15,7 +15,7 @@ class ExportImporter:
 
     def run(self):
 
-        self.run_context.track_started_on()
+        self.run_context.started()
         
         self.export_from_source_vault()
 
@@ -26,7 +26,7 @@ class ExportImporter:
             self.export_from_dest_vault()
             self.import_to_dest_vault()
 
-        self.run_context.track_ended_on()
+        self.run_context.ended()
 
         pass
 
@@ -39,6 +39,8 @@ class ExportImporter:
         self.sv.certs = self.vm.list_certs_from_src_vault()
         
         self.sv.secrets = self.vm.list_secrets_from_src_vault()
+
+        self.run_context.src_vault = self.sv
             
 
     def export_from_dest_vault(self):
@@ -50,11 +52,13 @@ class ExportImporter:
         self.dv.secret_names = secrets
         self.dv.deleted_secret_names = deleted_secrets
 
+        self.run_context.dest_vault = self.dv
+
     def import_to_dest_vault(self):
           
-        self.vm.import_certs(self.sv, self.dv)
+        self.vm.import_certs()
 
-        self.vm.import_secrets(self.sv, self.dv)
+        self.vm.import_secrets()
 
     
     def save_export_objects_to_local(self):
