@@ -41,6 +41,7 @@ class Cert:
         self.is_exists_in_dest_vault = False
         self.is_deleted_in_dest_vault = False
         self.versions : list[CertVersion] = []
+        self.is_exported = False
         self.is_imported = False
         self.tags = tags
 
@@ -64,6 +65,7 @@ class Secret:
     def __init__(self, name, tags = {}) -> None:
         self.name = name
         self.versions : list[SecretVersion] = []
+        self.is_exported = False
         self.is_imported = False
         self.tags = tags
 
@@ -161,12 +163,12 @@ class RunContext:
             if obj.name in self.dest_vault.deleted_secret_names:
                 obj.is_deleted_in_dest_vault = True
 
-    def count_total_objects_by_exported_versions(self, objs: list[CertVersion|SecretVersion]) -> int:
-         count = 0
-         for x in objs:
-              if len([v for v in x.versions if v.is_exported]) > 0:
-                   count += 1
-         return count
+    # def count_total_objects_by_exported_versions(self, objs: list[CertVersion|SecretVersion]) -> int:
+    #      count = 0
+    #      for x in objs:
+    #           if len([v for v in x.versions if v.is_exported]) > 0:
+    #                count += 1
+    #      return count
     
     # def count_total_objects_by_imported_versions(self, objs: list[CertVersion|SecretVersion]) -> int:
     #      count = 0

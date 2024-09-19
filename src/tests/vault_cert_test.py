@@ -5,7 +5,7 @@ from azure.keyvault.certificates import CertificateContentType
 from datetime import datetime
 import os
 import base64
-from model import SourceKeyVault, DestinationVault, Cert, CertVersion, RunContext
+from model import SourceKeyVault, DestinationVault, Cert, CertVersion, RunContext, Secret
 
 config = Config(src_vault_name='akv-export', dest_vault_name='akv-temp-3')
 run_context = RunContext(config)
@@ -570,6 +570,13 @@ class TestVaultCerts:
           result = vm.import_certs()
           
           assert len(result) == 1
+
+
+    
+    def _get_exported_secrets(self, secrets: list[Secret]):
+       for x in secrets:
+          if [v for v in x.versions if v.is_exported]
+          
 
     
 
