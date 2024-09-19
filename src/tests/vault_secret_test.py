@@ -128,11 +128,13 @@ class TestVaultSecret:
                  with patch("azure.keyvault.secrets.SecretClient.get_secret", return_value=key_vault_secret):
                  
                     result = vm.list_secrets_from_src_vault()
+                    result = [x for x in result if x.is_exported]
 
                     assert len(result) == 2
 
                     for c in result:
-                        assert len(c.versions) == 1
+                        exported_versions = [x for x in c.versions if x.is_exported]
+                        assert len(exported_versions) == 1
 
 
     def test_3_export_secret_versions_that_are_Not_Expired_ignore_Expired(self):
@@ -175,10 +177,11 @@ class TestVaultSecret:
                  with patch("azure.keyvault.secrets.SecretClient.get_secret", return_value=key_vault_secret):
                  
                     result = vm.list_secrets_from_src_vault()
+                    result = [x for x in result if x.is_exported]
+                    exported_version = [x for x in result[0].versions if x.is_exported]
 
                     assert len(result) == 1
-
-                    assert len(result[0].versions) == 1
+                    assert len(exported_version) == 1
 
 
     def test_4_export_secret_versions_that_are_not_cert_private_key(self):
@@ -258,18 +261,19 @@ class TestVaultSecret:
         # secret 1
         version_1 = SecretVersion(secret_name='secret_1', version='v1', value='am a secret',
                                   content_type='', expires_on=datetime(2026,1,1), 
-                                  activates_on=None, created_on=datetime(2024,9,1),enabled=True)
+                                  activates_on=None, created_on=datetime(2024,9,1),is_exported=True, enabled=True)
         secret_1 = Secret('secret_1')
         secret_1.versions.append(version_1)
+        secret_1.is_exported = True
         
         
         # secret 2, exists in dest vault and should be ignored
         version_2 = SecretVersion(secret_name='secret_2', version='v2', value='am a secret',
                                   content_type='', expires_on=datetime(2026,1,1), 
-                                  activates_on=None, created_on=datetime(2024,9,1),enabled=True)
+                                  activates_on=None, created_on=datetime(2024,9,1),is_exported=True, enabled=True)
         secret_2 = Secret('secret_2')
         secret_2.versions.append(version_2)
-        
+        secret_2.is_exported = True
 
         src_vault.secrets.append(secret_1)
         src_vault.secrets.append(secret_2)
@@ -286,7 +290,6 @@ class TestVaultSecret:
         with patch("azure.keyvault.secrets.SecretClient.set_secret"):
         
             result = vm.import_secrets()
-
             assert len(result) == 1
 
     
@@ -302,22 +305,22 @@ class TestVaultSecret:
         # secret 1
         version_1 = SecretVersion(secret_name='secret_1', version='v1', value='am a secret',
                                   content_type='', expires_on=datetime(2026,1,1), 
-                                  activates_on=None, created_on=datetime(2024,9,1),enabled=True)
+                                  activates_on=None, created_on=datetime(2024,9,1), is_exported=True, enabled=True)
         secret_1 = Secret('secret_1')
         secret_1.versions.append(version_1)
+        secret_1.is_exported = True
         
         
         # secret 2, deleted in dest vault and should be ignored
         version_2 = SecretVersion(secret_name='secret_2', version='v2', value='am a secret',
                                   content_type='', expires_on=datetime(2026,1,1), 
-                                  activates_on=None, created_on=datetime(2024,9,1),enabled=True)
+                                  activates_on=None, created_on=datetime(2024,9,1),is_exported=True,enabled=True)
         secret_2 = Secret('secret_2')
         secret_2.versions.append(version_2)
-        
+        secret_2.is_exported = True
 
         src_vault.secrets.append(secret_1)
         src_vault.secrets.append(secret_2)
-
 
         dest_vault = DestinationVault('dest_vault')
         dest_vault.deleted_secret_names = ['secret_2']
