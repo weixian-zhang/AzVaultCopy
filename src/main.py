@@ -11,6 +11,8 @@ from log import log
 # package cmdline app publish to pypi
 # https://blog.thesourcepedia.org/build-cli-app-in-python-with-click-and-publish-to-pypi#heading-prepare-for-package
 
+
+
 @click.command()
 @click.option('--src_vault', '-sv', default='', help='source vault name')
 @click.option('--dest_vault', '-dv', default='', help='destination vault name')
@@ -39,9 +41,14 @@ def run(src_vault, dest_vault, src_token, dest_token, export_dir='',export_only=
     except Exception as e:
             log.err(e)
 
-def main(*args):
+@click.group()
+def cli(*args):
     run(*args)
+    
+# def main(*args):
+#     run(*args)
 
+cli.add_command(run)
 
 if __name__ == '__main__':
-    main()
+    cli()
