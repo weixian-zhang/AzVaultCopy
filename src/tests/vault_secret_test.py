@@ -279,9 +279,13 @@ class TestVaultSecret:
         dest_vault.secret_names = ['secret_2']
 
 
+        run_context.src_vault = src_vault
+        run_context.dest_vault = dest_vault
+
+
         with patch("azure.keyvault.secrets.SecretClient.set_secret"):
         
-            result = vm.import_secrets(src_vault, dest_vault)
+            result = vm.import_secrets()
 
             assert len(result) == 1
 
@@ -318,10 +322,13 @@ class TestVaultSecret:
         dest_vault = DestinationVault('dest_vault')
         dest_vault.deleted_secret_names = ['secret_2']
 
+        run_context.src_vault = src_vault
+        run_context.dest_vault = dest_vault
+
 
         with patch("azure.keyvault.secrets.SecretClient.set_secret"):
         
-            result = vm.import_secrets(src_vault, dest_vault)
+            result = vm.import_secrets()
 
             assert len(result) == 1
         
