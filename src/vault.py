@@ -42,7 +42,7 @@ class VaultManager:
         oldest will be created first and the last item which is the latest current version in destination vault
         """
 
-        log.info('begin export certs')
+        log.info('begin export certs', 'ExportCert')
 
         result = []
 
@@ -107,7 +107,7 @@ class VaultManager:
             result.append(cert)
             #self.run_context.track_exported_cert_version(cert_prop.name, len(cert.versions)) # report
 
-        log.info('export certs completed')
+        log.info('export certs completed', 'ExportCert')
 
         self.run_context.total_exported_certs = len([x for x in result if x.is_exported]) #self.run_context.count_total_objects_by_exported_versions(result) # report
 
@@ -127,7 +127,7 @@ class VaultManager:
         oldest will be created first and the last item which is the latest current version in destination vault
         """
         
-        log.info('begin exporting secrets')
+        log.info('begin exporting secrets', 'ExportSecret')
 
         result = []
 
@@ -184,7 +184,7 @@ class VaultManager:
             result.append(vault_secret)
             #self.run_context.track_exported_secret_version(secret.name, len(vault_secret.versions)) # report
 
-        log.info('export secrets completed')
+        log.info('export secrets completed', 'ExportSecret')
 
         self.run_context.total_exported_secrets = len([x for x in result if x.is_exported]) #self.run_context.count_total_objects_by_exported_versions(result) # report
 
@@ -198,7 +198,7 @@ class VaultManager:
          returns a set containing all certs and deleted certs
          """
 
-         log.info('exporting certs from dest vault')
+         log.info('exporting certs from dest vault', 'ExportDestCert')
 
          certs, deleted_certs = set(), set()
 
@@ -208,7 +208,7 @@ class VaultManager:
          for dc in self.dest_cert_client.list_deleted_certificates():
               deleted_certs.add(dc.name)
          
-         log.info('export dest vault certs completed')
+         log.info('export dest vault certs completed', 'ExportDestCert')
 
          return certs, deleted_certs
     
@@ -218,7 +218,7 @@ class VaultManager:
          returns 2 sets containing all secrets and deleted secrets
          """
          
-         log.info('exporting secrets from dest vault')
+         log.info('exporting secrets from dest vault', 'ExportDestSecret')
 
          secrets, deleted_secrets = set(), set()
 
@@ -228,7 +228,7 @@ class VaultManager:
          for ds in self.dest_secret_client.list_deleted_secrets():
               deleted_secrets.add(ds.name)
          
-         log.info('export dest vault secrets completed')
+         log.info('export dest vault secrets completed', 'ExportDestSecret')
 
          return secrets, deleted_secrets
     
@@ -240,7 +240,7 @@ class VaultManager:
                will import object to dest vault causing a new version to be created
           """
          
-          log.info('begin importing certs')
+          log.info('begin importing certs', 'ImportCert')
 
           imported_version_result = [] # support unit testing
           
@@ -274,7 +274,7 @@ class VaultManager:
                               version.is_cert_marked_as_exportable = True # report
                               self.run_context.track_version_stats(cert.name, VaultObjectType.Cert, TrackType.Imported) # report
 
-                              log.info(f'Cert: {cert.name} with version: {version.version} is successful', 'ImportCert')
+                              #log.info(f'Cert: {cert.name} with version: {version.version} is successful', 'ImportCert')
                               
                          except Exception as e:
                               err = str(e).lower()
@@ -339,6 +339,7 @@ class VaultManager:
                                    imported_version_result.append(version)
 
                                    is_version_imported = True # report
+                                   version.is_exported = True
                                    self.run_context.track_version_stats(secret.name, VaultObjectType.Secret, TrackType.Imported) # report
                                    # self.run_context.track_imported_secret_version(secret.name, 1) # report
 
@@ -356,7 +357,7 @@ class VaultManager:
                     log.err(f'error when importing secret {secret.name}. {e}', 'ImportSecret')
 
 
-         log.info('import secrets completed')
+         log.info('import secrets completed', 'ImportSecret')
 
          return imported_version_result
 

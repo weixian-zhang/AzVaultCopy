@@ -58,6 +58,7 @@ class SecretVersion:
         self.is_expired = _is_expired(self.expires_on )
         self.enabled= enabled
         self.is_exported = is_exported
+        self.is_imported=False
         self.is_latest_version = False
         self.tags = tags
 
@@ -67,6 +68,8 @@ class Secret:
         self.versions : list[SecretVersion] = []
         self.is_exported = False
         self.is_imported = False
+        self.is_exists_in_dest_vault = False
+        self.is_deleted_in_dest_vault = False
         self.tags = tags
 
 class SourceKeyVault:
@@ -97,13 +100,11 @@ class RunContext:
 
         self.total_certs = 0
         self.total_exported_certs = 0
-        self.not_total_exported_certs = 0
         self.cert_export_import_stats = {}   # cert name is key and value is tuple(total versions, total exported, total imported)
         self.total_imported_certs = 0
 
         self.total_secrets = 0
         self.total_exported_secrets = 0
-        self.not_total_exported_secrets = 0
         self.secret_export_import_stats = {} # cert name is key and value is tuple(total versions, total exported, total imported)
         self.total_imported_secrets = 0
 
