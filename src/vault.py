@@ -94,7 +94,8 @@ class VaultManager:
                                  created_on= version.created_on, enable= version.enabled, is_exported=True, tags= version.tags)
 
                 cert.versions.append(cv)
-                
+                if not cert.is_exported:
+                    cert.is_exported = True 
                 self.run_context.track_version_stats(cert_prop.name, VaultObjectType.Cert, TrackType.Exported) # report
 
                 #log.info(f'exported Cert {cert.name} of version {version.version} with private key as {decoded_cert_type} format')
@@ -108,7 +109,7 @@ class VaultManager:
 
         log.info('export certs completed')
 
-        self.run_context.total_exported_certs = self.run_context.count_total_objects_by_exported_versions(result) # report
+        self.run_context.total_exported_certs = len([x for x in result if x.is_exported]) #self.run_context.count_total_objects_by_exported_versions(result) # report
 
         return result
 
@@ -171,7 +172,8 @@ class VaultManager:
                                    enabled=version.enabled, is_exported=True, tags=version.tags)
 
                 vault_secret.versions.append(sv)
-
+                if not vault_secret.is_exported:
+                    vault_secret.is_exported = True
                 self.run_context.track_version_stats(secret.name, VaultObjectType.Secret, TrackType.Exported) # report
 
                 # log.info(f'exported Secret {secret.name} of version {version.version}')
@@ -184,7 +186,7 @@ class VaultManager:
 
         log.info('export secrets completed')
 
-        self.run_context.total_exported_secrets = self.run_context.count_total_objects_by_exported_versions(result) # report
+        self.run_context.total_exported_secrets = len([x for x in result if x.is_exported]) #self.run_context.count_total_objects_by_exported_versions(result) # report
 
         return result
 
@@ -242,7 +244,8 @@ class VaultManager:
 
           imported_version_result = [] # support unit testing
           
-          for cert in self.run_context.src_vault.certs:
+          exported_certs = [x for x in self.run_context.src_vault.certs if x.is_exported]
+          for cert in exported_certs:
 
                try:
 
@@ -258,8 +261,7 @@ class VaultManager:
                          #log.warn(f'cert {cert.name} is found in dest vault {self.run_context.dest_vault.name} as deleted, import is ignored', 'ImportCert')
                          continue
                     
-                    exported_versions = [x for x in cert.versions if x.is_exported]
-                    for version in exported_versions:
+                    for version in [x for x in cert.versions if x.is_exported]:
 
                          try:
                          
@@ -307,7 +309,8 @@ class VaultManager:
 
          imported_version_result = []
 
-         for secret in self.run_context.src_vault.secrets:
+         exported_secrets = [x for x in self.run_context.src_vault.secrets if x.is_exported]
+         for secret in exported_secrets:
               
                try:
                     is_version_imported = False
@@ -322,8 +325,7 @@ class VaultManager:
                          #log.warn(f'secret {secret.name} is found in dest vault {self.run_context.dest_vault.name} as deleted, import is ignored', 'ImportSecret')
                          continue
                     
-                    exported_versions = [x for x in secret.versions if x.is_exported]
-                    for version in exported_versions:
+                    for version in [x for x in secret.versions if x.is_exported]:
                          
                               try:
                                    self.dest_secret_client.set_secret(secret.name, 
