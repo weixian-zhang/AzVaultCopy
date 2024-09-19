@@ -4,6 +4,7 @@ from config import Config
 from log import log
 from dir import ExportDirectory
 import os
+from report import ReportRenderer
 class ExportImporter:
     
     def __init__(self, config: Config) -> None:
@@ -28,7 +29,10 @@ class ExportImporter:
 
         self.run_context.ended()
 
-        pass
+        log.info('generating summary', 'Report')
+        rr = ReportRenderer(self.run_context)
+
+        rr.print()
 
 
     def export_from_source_vault(self):

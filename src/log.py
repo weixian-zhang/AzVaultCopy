@@ -1,6 +1,6 @@
 import logging
 import colorlog
-
+from termcolor import colored
 
 
 class _Log:
@@ -57,6 +57,9 @@ class _Log:
         if module:
             extra = self._set_module(module)
         self.logger.error(error, extra=extra)
+
+    def color(self, text, color='green'):
+        print(colored(text, color))
 
     def _empty_module(self):
         return {'m': ''}

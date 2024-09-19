@@ -32,11 +32,10 @@ from log import log
               ''')
 def run(src_vault, dest_vault, src_token, dest_token, export_dir='',export_only=False, no_import_if_dest_exist=False, timezone='Asia/Kuala_Lumpur'):
     try:
+    
          config = Config(src_vault, dest_vault, src_token, dest_token, export_dir, export_only, no_import_if_dest_exist)
          ei = ExportImporter(config)
          ei.run()
-
-         log.info('execution completed')
     except Exception as e:
             log.err(e)
 

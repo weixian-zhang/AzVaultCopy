@@ -5,7 +5,9 @@ class Util:
 
     @staticmethod
     def friendly_date_str(d: datetime):
-        return d.strftime('%b %d %Y')
+        if d:
+          return d.strftime('%b %d %Y')
+    
        
     @staticmethod
     def as_timezone(d: datetime, tz = 'Asia/Kuala_Lumpur'):
