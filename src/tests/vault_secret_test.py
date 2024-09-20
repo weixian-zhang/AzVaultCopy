@@ -1,7 +1,7 @@
 from unittest.mock import patch, Mock
-from config import Config
-from vault import VaultManager
-from model import SourceKeyVault, DestinationVault, Secret, SecretVersion, RunContext
+from src.config import Config
+from src.vault import VaultManager
+from src.model import SourceKeyVault, DestinationVault, Secret, SecretVersion, RunContext
 from datetime import datetime
 
 config = Config(src_vault_name='akv-export', dest_vault_name='akv-temp-3')
@@ -93,7 +93,6 @@ class TestVaultSecret:
         2. export secret versions that are Enabled and ignore Disabled
         """
         
-        # mock.method.return_value = True
         secret_1 = Mock()
         secret_1.name = 'secret_1'
         secret_1.enabled = True
