@@ -13,7 +13,7 @@
             "request": "launch",
             "program": "${workspaceFolder}\\src\\azvaultcopy.py",
             "console": "integratedTerminal",
-            "args": ["copypaste", "--src_vault", "akv-gccs", "--dest_vault", "akv-temp-3",
+            "args": ["copypaste", "--src_vault", "akv-gccs", "--dest_vault", "akv-temp-3", "--export_only",
             "-ed", "%USERPROFILE%\\desktop\\export"]
         }
     ]

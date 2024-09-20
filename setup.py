@@ -25,7 +25,7 @@ def _readme():
 
 setup(
     name="azvaultcopy",  # Replace with your package name
-    version="0.1.5",  # Version of the package
+    version="0.1.6",  # Version of the package
     author="Weixian Zhang",
     author_email="wxztechpass@outlook.com",
     description="cmdline tool to copy Azure Key Vault certs and secrets from one vault to another in same or a different tenant",
