@@ -7,6 +7,7 @@ import os
 # https://blog.thesourcepedia.org/build-cli-app-in-python-with-click-and-publish-to-pypi
 # twine upload test pypi
 # https://packaging.python.org/en/latest/guides/using-testpypi/
+# py -m pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ azvaultcopy
 
 cwd = os.path.dirname(os.path.realpath(__file__))
 
@@ -25,7 +26,7 @@ def _readme():
 
 setup(
     name="azvaultcopy",  # Replace with your package name
-    version="0.1.6",  # Version of the package
+    version="1.0.0b1",  # Version of the package
     author="Weixian Zhang",
     author_email="wxztechpass@outlook.com",
     description="cmdline tool to copy Azure Key Vault certs and secrets from one vault to another in same or a different tenant",
