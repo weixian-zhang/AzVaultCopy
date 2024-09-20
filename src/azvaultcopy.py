@@ -1,9 +1,9 @@
 
 import click
-from config import Config
-from vault import VaultManager
-from export_import import ExportImporter
-from log import log
+from src.config import Config
+from src.vault import VaultManager
+from src.export_import import ExportImporter
+from src.log import log
 
 # click tutorial
 # https://www.youtube.com/watch?v=riQd3HNbaDk&list=PLJ39kWiJXSizF1shhf2rHi-aA1yjt7rtX
@@ -13,7 +13,7 @@ from log import log
 
 
 
-@click.command()
+@click.command(name='copypaste')
 @click.option('--src_vault', '-sv', default='', help='source vault name')
 @click.option('--dest_vault', '-dv', default='', help='destination vault name')
 @click.option('--src_token', '-st', default='', help='''access token of source Entra Tenant to access source vault.\n
@@ -32,9 +32,8 @@ from log import log
 @click.option('--timezone', '-tz', default='Asia/Kuala_Lumpur', help='''Python timezone name to localize datetime\n
               https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
               ''')
-def run(src_vault, dest_vault, src_token, dest_token, export_dir='',export_only=False, no_import_if_dest_exist=False, timezone='Asia/Kuala_Lumpur'):
+def copypaste(src_vault, dest_vault, src_token, dest_token, export_dir='',export_only=False, no_import_if_dest_exist=False, timezone='Asia/Kuala_Lumpur'):
     try:
-    
          config = Config(src_vault, dest_vault, src_token, dest_token, export_dir, export_only, no_import_if_dest_exist)
          ei = ExportImporter(config)
          ei.run()
@@ -42,13 +41,10 @@ def run(src_vault, dest_vault, src_token, dest_token, export_dir='',export_only=
             log.err(e)
 
 @click.group()
-def cli(*args):
-    run(*args)
-    
-# def main(*args):
-#     run(*args)
+def cli():
+     pass
 
-cli.add_command(run)
+cli.add_command(copypaste)
 
 if __name__ == '__main__':
     cli()

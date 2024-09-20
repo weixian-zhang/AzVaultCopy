@@ -2,13 +2,13 @@ from azure.identity import DefaultAzureCredential
 from azure.keyvault.certificates import CertificateClient, CertificateContentType, CertificatePolicy
 from cryptography import x509
 from azure.keyvault.secrets import SecretClient
-from config import Config
+from src.config import Config
 import base64 
 from datetime import datetime
-from model import (Cert, CertVersion, RunContext, Secret, SecretVersion, 
+from src.model import (Cert, CertVersion, RunContext, Secret, SecretVersion, 
                    SourceKeyVault, DestinationVault,VaultObjectType, TrackType)
-from log import log
-from util import Util
+from src.log import log
+from src.util import Util
 
 # example
 # https://github.com/Azure/azure-sdk-for-python/blob/main/sdk/keyvault/azure-keyvault-certificates/samples/parse_certificate.py
