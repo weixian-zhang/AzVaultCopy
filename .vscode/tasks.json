@@ -12,12 +12,28 @@
             }
         },
         {
-            "label": "twine upload test pypi",
+            "label": "twine upload Test PyPi",
             "type": "shell",
             "command": "twine upload --repository testpypi dist/*",
             "options": {
                 "cwd": "${workspaceFolder}"
             }
-        }
+        },
+        {
+            "label": "install from Test PyPi",
+            "type": "shell",
+            "command": "py -m pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ azvaultcopy",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            }
+        },
+        {
+            "label": "twine upload PyPi Production",
+            "type": "shell",
+            "command": "twine upload dist/*",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            }
+        },
     ]
 }
