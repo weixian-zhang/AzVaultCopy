@@ -27,12 +27,12 @@ class ReportRenderer:
 
 
     def _print_general_info_section(self):
-        log.color(f'{self._dbl_line(30)} Execution Report {self._dbl_line(30)}')
+        log.color(f'{self._dbl_line(58)} Execution Report {self._dbl_line(58)}')
         log.color(f"{'started on:':<25} {self._friendly_time_str(Util.as_timezone(self.rc.started_on))}")
         log.color(f"{'ended on:':<25} {self._friendly_time_str(Util.as_timezone(self.rc.ended_on)):<25}")
         log.color('')
 
-        log.color(f'{self._single_line(30)} Config {self._single_line(30)}')
+        log.color(f'{self._single_line(58)} Config {self._single_line(58)}')
         log.color(f"{'no_import_if_dest_exist:':<25} {str(self.conf.no_import_if_dest_exist)}")
         log.color(f"{'export_dir:':<25} {str(self.conf.export_dir)}")
         log.color(f"{'export_only:':<25} {str(self.conf.export_only)}")
@@ -40,7 +40,7 @@ class ReportRenderer:
 
 
     def _print_object_level_section(self):
-        log.color(f'{self._single_line(30)} Object Level Summary {self._single_line(30)}')
+        log.color(f'{self._single_line(58)} Object Level Summary {self._single_line(58)}')
         log.color(f"{'total certs:':<25} {str(self.rc.total_certs)}")
         log.color(f"{'exported certs:':<25} {str(self.rc.total_exported_certs)}/{str(self.rc.total_certs)}")
         log.color(f"{'imported certs:':<25} {str(self.rc.total_imported_certs)}/{str(self.rc.total_exported_certs)}")
@@ -51,7 +51,7 @@ class ReportRenderer:
 
 
     def _print_cert_version_stats_table(self):
-        log.color(f'{self._single_line(30)} Cert Version Level Summary {self._single_line(30)}')
+        log.color(f'{self._single_line(58)} Cert Version Level Summary {self._single_line(58)}')
         log.color('')
 
         # stats table
@@ -89,7 +89,7 @@ class ReportRenderer:
                 
     
     def _print_secret_version_stats_table(self):
-        log.color(f'{self._single_line(30)} Secret Version Level Summary {self._single_line(30)}')
+        log.color(f'{self._single_line(58)} Secret Version Level Summary {self._single_line(58)}')
         log.color('')
 
         # stats table
