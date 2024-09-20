@@ -9,23 +9,27 @@ import os
 # https://packaging.python.org/en/latest/guides/using-testpypi/
 
 cwd = os.path.dirname(os.path.realpath(__file__))
-requirement_file_path = os.path.join(cwd, 'requirements.txt')
 
 # Utility function to read the requirements from the requirements.txt file
 def _modules():
-    with open(requirement_file_path) as f:
+    requirement_fp = os.path.join(cwd, 'requirements.txt')
+    with open(requirement_fp) as f:
         modules = f.read().splitlines()
         return modules
     
-_modules()
+def _readme():
+    readme_fp = os.path.join(cwd, 'README.md')
+    with open(readme_fp) as f:
+        readme = f.read()
+        return readme
 
 setup(
     name="azvaultcopy",  # Replace with your package name
-    version="0.1.4",  # Version of the package
+    version="0.1.5",  # Version of the package
     author="Weixian Zhang",
     author_email="wxztechpass@outlook.com",
     description="cmdline tool to copy Azure Key Vault certs and secrets from one vault to another in same or a different tenant",
-    long_description='cmdline tool to copy Azure Key Vault certs and secrets from one vault to another in same or a different tenant',
+    long_description=_readme(),
     long_description_content_type="text/markdown",
     url="https://github.com/weixian-zhang/AzVaultCopy",  # URL to the repository or project page
     packages=find_packages(exclude=['tests']),  # Automatically find packages in the directory

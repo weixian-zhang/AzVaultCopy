@@ -49,18 +49,11 @@ class VaultManager:
         for cert_prop in self.src_cert_client.list_properties_of_certificates():
             
             self.run_context.total_certs += 1 # report
-            
-          #   if not cert_prop.enabled:
-          #       log.warn(f'Cert {cert_prop.name} is not enabled, ignoring')
-          #       continue
 
             cert = Cert(cert_prop.name, cert_prop.tags)
 
             cert_policy = self.src_cert_client.get_certificate_policy(cert_prop.name)
 
-          #   if not cert_policy.exportable:
-          #      log.warn(f'Cert {cert.name} is marked Not Exportable, ignoring')
-          #      continue
 
             for version in self.src_cert_client.list_properties_of_certificate_versions(cert_prop.name):
                 
@@ -70,7 +63,6 @@ class VaultManager:
                      cert.versions.append(CertVersion(cert_name=cert_prop.name, version=version.version, cert=b'',
                                  cert_policy=None, type='', expires_on=version.expires_on, 
                                  created_on=version.created_on, enable=version.enabled, is_exported=False, tags=version.tags))
-                     #log.warn(f'Cert {cert.name} of version {version.version} is not enabled, ignoring')
                      continue
                 
                 
@@ -78,7 +70,6 @@ class VaultManager:
                      cert.versions.append(CertVersion(cert_name=cert_prop.name, version=version.version, cert=b'',
                                  cert_policy=None, type='', expires_on=version.expires_on, 
                                  created_on=version.created_on, enable=version.enabled, is_exported=False, tags=version.tags))
-                     #log.warn(f'Cert {cert.name} of version {version.version} was expired on {Util.friendly_date_str(version.expires_on)}, ignoring')
                      continue
                 
 
@@ -153,7 +144,6 @@ class VaultManager:
                                    content_type=version.content_type, expires_on=version.expires_on, 
                                    activates_on=version.not_before,created_on=version.created_on,
                                    enabled=version.enabled, is_exported=False, tags=version.tags))
-                    #log.warn(f'Secret {secret.name} of version {version.version} is not enabled, ignoring')
                     continue
                 
                 if Util.is_object_expired(version.expires_on, self.config.timezone):
@@ -161,7 +151,6 @@ class VaultManager:
                                    content_type=version.content_type, expires_on=version.expires_on, 
                                    activates_on=version.not_before,created_on=version.created_on,
                                    enabled=version.enabled, is_exported=False, tags=version.tags))
-                     #log.warn(f'Secret {secret.name} of version {version.version} was expired on {Util.friendly_date_str(version.expires_on)}, ignoring')
                      continue
                 
                 secret_value  = self.src_secret_client.get_secret(version.name, version.version).value
@@ -176,17 +165,13 @@ class VaultManager:
                     vault_secret.is_exported = True
                 self.run_context.track_version_stats(secret.name, VaultObjectType.Secret, TrackType.Exported) # report
 
-                # log.info(f'exported Secret {secret.name} of version {version.version}')
-
-          #   if vault_secret.versions:
             vault_secret.versions = sorted(vault_secret.versions, key = lambda x: x.created_on)
             vault_secret.versions[-1].is_latest_version = True
             result.append(vault_secret)
-            #self.run_context.track_exported_secret_version(secret.name, len(vault_secret.versions)) # report
 
         log.info('export secrets completed', 'ExportSecret')
 
-        self.run_context.total_exported_secrets = len([x for x in result if x.is_exported]) #self.run_context.count_total_objects_by_exported_versions(result) # report
+        self.run_context.total_exported_secrets = len([x for x in result if x.is_exported])
 
         return result
 
@@ -233,7 +218,7 @@ class VaultManager:
          return secrets, deleted_secrets
     
 
-    def import_certs(self)-> list[CertVersion]: # src_vault: SourceKeyVault, dest_vault: DestinationVault) -> list[CertVersion]:
+    def import_certs(self)-> list[CertVersion]:
           """
           - import will be ignored if dest vault contains object with same name
           - if dest vault contains same object name, and --ignore-import-if-exists is set to True, 
@@ -254,11 +239,9 @@ class VaultManager:
                     self.run_context.track_object_deleted_in_dest_vault(cert, VaultObjectType.Cert) # report
 
                     if self.config.no_import_if_dest_exist and cert.name in self.run_context.dest_vault.cert_names:
-                         #log.warn(f'cert {cert.name} is found in dest vault {self.run_context.dest_vault.name}, import is ignored with --no_import_if_dest_exist flag on', 'ImportCert')
                          continue
                     
                     if cert.name in self.run_context.dest_vault.deleted_cert_names:
-                         #log.warn(f'cert {cert.name} is found in dest vault {self.run_context.dest_vault.name} as deleted, import is ignored', 'ImportCert')
                          continue
                     
                     for version in [x for x in cert.versions if x.is_exported]:
@@ -270,11 +253,9 @@ class VaultManager:
                               imported_version_result.append(version)
 
                               is_version_imported = True # report
-                              version.is_imported = True
+                              version.is_imported = True # report
                               version.is_cert_marked_as_exportable = True # report
                               self.run_context.track_version_stats(cert.name, VaultObjectType.Cert, TrackType.Imported) # report
-
-                              #log.info(f'Cert: {cert.name} with version: {version.version} is successful', 'ImportCert')
                               
                          except Exception as e:
                               err = str(e).lower()
@@ -298,7 +279,7 @@ class VaultManager:
          
          
 
-    def import_secrets(self): #src_vault: SourceKeyVault, dest_vault: DestinationVault):
+    def import_secrets(self):
          """
          - import will be ignored if dest vault contains object with same name
          - if dest vault contains same object name, and --ignore-import-if-exists is set to True, 
@@ -318,11 +299,10 @@ class VaultManager:
                     self.run_context.track_object_deleted_in_dest_vault(secret, VaultObjectType.Secret) # report
                    
                     if self.config.no_import_if_dest_exist and secret.name in self.run_context.dest_vault.secret_names:
-                         #log.warn(f'secret {secret.name} is found in dest vault {self.run_context.dest_vault.name}, import is ignored with --no_import_if_dest_exist flag on', 'ImportSecret')
                          continue
 
                     if secret.name in self.run_context.dest_vault.deleted_secret_names:
-                         #log.warn(f'secret {secret.name} is found in dest vault {self.run_context.dest_vault.name} as deleted, import is ignored', 'ImportSecret')
+
                          continue
                     
                     for version in [x for x in secret.versions if x.is_exported]:
@@ -339,11 +319,9 @@ class VaultManager:
                                    imported_version_result.append(version)
 
                                    is_version_imported = True # report
-                                   version.is_exported = True
+                                   version.is_exported = True # report
+                                   version.is_imported = True # report
                                    self.run_context.track_version_stats(secret.name, VaultObjectType.Secret, TrackType.Imported) # report
-                                   # self.run_context.track_imported_secret_version(secret.name, 1) # report
-
-                                   #log.info(f'imported Secret: {secret.name} version: {version.version} is successful')
 
                               except Exception as e:
                                    log.err(f'error when importing secret {secret.name} of version {version.version} {e}', 'ImportSecret')
