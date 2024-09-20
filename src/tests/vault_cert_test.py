@@ -1,11 +1,11 @@
 from unittest.mock import patch, Mock
-from config import Config
-from vault import VaultManager
+from src.config import Config
+from src.vault import VaultManager
 from azure.keyvault.certificates import CertificateContentType
 from datetime import datetime
 import os
 import base64
-from model import SourceKeyVault, DestinationVault, Cert, CertVersion, RunContext, Secret
+from src.model import SourceKeyVault, DestinationVault, Cert, CertVersion, RunContext, Secret
 
 config = Config(src_vault_name='akv-export', dest_vault_name='akv-temp-3')
 run_context = RunContext(config)
@@ -94,7 +94,6 @@ class TestVaultCerts:
               and becomes the latest/current version in destination vault
         """
         
-        # mock.method.return_value = True
         cert_prop_1 = Mock()
         cert_prop_1.name = 'cert_1'
         cert_prop_1.enabled = True
