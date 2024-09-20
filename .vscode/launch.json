@@ -11,9 +11,9 @@
             "name": "debug app",
             "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}\\src\\main.py",
+            "program": "${workspaceFolder}\\src\\azvaultcopy.py",
             "console": "integratedTerminal",
-            "args": ["--src_vault", "akv-gccs", "--dest_vault", "akv-temp-3",
+            "args": ["copypaste", "--src_vault", "akv-gccs", "--dest_vault", "akv-temp-3",
             "-ed", "%USERPROFILE%\\desktop\\export"]
         }
     ]

@@ -1,5 +1,5 @@
 from datetime import datetime
-from util import Util
+from src.util import Util
 from enum import Enum
 
 def _is_expired(expires_on):

@@ -1,5 +1,5 @@
 from azure.identity import AzureCliCredential
-from azcred import ExistingTokenCredential
+from src.azcred import ExistingTokenCredential
 from dotenv import load_dotenv
 import os
 
