@@ -29,7 +29,44 @@ Cli tool to export and import secrets and certs from one Key Vault to another on
     * Key Vault Reader
     * Key Vault Secrets User
 
-3. <code>azvaultcopy copypaste --src_vault {name of source key vault} --dest_vault {name of dest key vault} --src_token {source vault tenant access token} --dest_token {dest vault tenant access token}</code>
+3. <code>azvaultcopy copypaste --src_vault {name of source key vault} --dest_vault {name of dest key vault} --src_token {source vault tenant access token} --dest_token {dest vault tenant access token}</code> 
+<code>
+Usage: azvaultcopy copypaste [OPTIONS]
+
+Options:
+  -sv, --src_vault TEXT           source vault name
+  -dv, --dest_vault TEXT          destination vault name
+  -st, --src_token TEXT           access token of source Entra Tenant to
+                                  access source vault.
+
+                                  az login --tenant {tenant id}
+
+                                  az account get-access-token --scope
+                                  https://vault.azure.net/.default --query
+                                  "accessToken"
+  -dt, --dest_token TEXT          access token of destination Entra Tenant to
+                                  access source vault.
+
+                                  az login --tenant {tenant id}
+
+                                  az account get-access-token --scope
+                                  https://vault.azure.net/.default --query
+                                  "accessToken"
+  -ed, --export_dir TEXT          certs and secrets are save to this directory
+                                  while importing to dest vault
+  -eo, --export_only              all certs and secrets are save to local
+                                  drive, WITHOUT importing to dest vault
+  -ii, --no_import_if_dest_exist  any cert or secret with same name at dest
+                                  vault will not be imported
+
+                                  * When importing an object with the same
+                                  name, vault will create a new version.
+  -tz, --timezone TEXT            Python timezone name to localize datetime
+
+                                  https://en.wikipedia.org/wiki/List_of_tz_dat
+                                  abase_time_zones
+  --help                          Show this message and exit.
+</code>
 
 <br >
 
