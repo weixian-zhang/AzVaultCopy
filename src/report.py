@@ -104,13 +104,14 @@ class ReportRenderer:
         # version detail table
 
         version_table = PrettyTable()
-        version_table.field_names = ['name', 'version',  'content type', 'activates on', 'expires on', 
+        version_table.field_names = ['name', 'version',  'content type', 'expires on', 
                                     'exported', 'imported', 'enabled', 'expired', 
                                     'latest version', 'exist dest', 'deleted dest']
         
         for s in self.rc.src_vault.secrets:
             for v in s.versions:
-                version_table.add_row([s.name[:15], v.version[:5], v.content_type, Util.friendly_date_str(v.activates_on), Util.friendly_date_str(v.expires_on),
+                ct = v.content_type[:10] if v.content_type else ''
+                version_table.add_row([s.name[:15], v.version[:5], ct, Util.friendly_date_str(v.expires_on),
                                             '1' if v.is_exported else '-',
                                             '1' if v.is_imported else '-',
                                             '1' if v.enabled else '-',

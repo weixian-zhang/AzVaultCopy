@@ -6,7 +6,7 @@
         {
             "label": "sdist package tool",
             "type": "shell",
-            "command": "python setup.py sdist bdist_wheel",
+            "command": "rm -r ${workspaceFolder}\\dist\\*;python setup.py sdist bdist_wheel",
             "options": {
                 "cwd": "${workspaceFolder}"
             }

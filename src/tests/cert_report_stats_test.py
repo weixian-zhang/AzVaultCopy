@@ -10,10 +10,6 @@ from src.export_import import ExportImporter
 
 config = Config(src_vault_name='akv-export', dest_vault_name='akv-temp-3')
 
-# run_context = RunContext(config)
-# vm = VaultManager(config, run_context)
-export_importer = ExportImporter(config)
-run_context = export_importer.run_context
 
 pfx_cert = b''
 pfx_cert_str = ''
@@ -84,7 +80,8 @@ class TestCertReportStats:
         """
         1. total certs matches total exported certs
         """
-
+        export_importer = ExportImporter(config)
+        run_context = export_importer.run_context
         config.export_only = True
 
         cert_prop_1 = Mock()
@@ -179,6 +176,8 @@ class TestCertReportStats:
             2.1 exported certs is less than total exported certs
             2.2 matrix flags are correctly set
         """
+        export_importer = ExportImporter(config)
+        run_context = export_importer.run_context
 
         config.export_only = True
 
@@ -205,7 +204,7 @@ class TestCertReportStats:
 
         version_1_2 = Mock()
         version_1_2.name = 'version_1_2'
-        version_1_2.enabled = False
+        version_1_2.enabled = False # disabled
         version_1_2.version = 'v12'
         version_1_2.expires_on = datetime(2025,10,1)
         version_1_2.created_on = datetime(2024,1,1, 1, 0, 0)
@@ -223,7 +222,7 @@ class TestCertReportStats:
 
         version_2_2 = Mock()
         version_2_2.name = 'version_2_2'
-        version_2_2.enabled = False
+        version_2_2.enabled = False # disabled
         version_2_2.version = 'v2'
         version_2_2.expires_on = datetime(2025,10,1)
         version_2_2.created_on = datetime(2024,1,1, 2, 0, 0)
@@ -261,6 +260,8 @@ class TestCertReportStats:
                                     
                                     export_importer.run()
 
+                                    assert run_context.total_exported_certs == 2
+                                    assert run_context.total_certs == 2
                                     assert run_context.total_certs == run_context.total_exported_certs
 
                                     assert len([x for x in run_context.src_vault.certs if x.is_exported]) == 2
@@ -277,6 +278,8 @@ class TestCertReportStats:
             3.2 matrix flags are correctly set
                 - is_imported
         """
+        export_importer = ExportImporter(config)
+        run_context = export_importer.run_context
 
         config.export_only = False
 
@@ -378,7 +381,8 @@ class TestCertReportStats:
                 - is_imported = true
                 - is_exported = true
         """
-
+        export_importer = ExportImporter(config)
+        run_context = export_importer.run_context
         config.export_only = False
 
         # certs
@@ -471,11 +475,12 @@ class TestCertReportStats:
 
 
 
-    def test_5_total_versions_matches_exported_secrets(self):
+    def test_secret_5_total_versions_matches_exported_secrets(self):
         """
-        1. total certs matches total exported certs
+        5. total certs matches total exported certs
         """
-
+        export_importer = ExportImporter(config)
+        run_context = export_importer.run_context
         config.export_only = True
 
         cert_policy = Mock()
@@ -576,13 +581,14 @@ class TestCertReportStats:
 
 
     
-    def test_6_version_disabled_total_less_than_exported(self):
+    def test_secret_6_version_disabled_total_less_than_exported(self):
         """
         6. version disabled
             6.1 exported secrets is less than total exported secrets
             6.2 matrix flags are correctly set
         """
-
+        export_importer = ExportImporter(config)
+        run_context = export_importer.run_context
         config.export_only = True
 
         cert_policy = Mock()
@@ -697,7 +703,7 @@ class TestCertReportStats:
 
 
 
-    def test_7_version_expired_exported_less_than_total(self):
+    def test_secret_7_version_expired_exported_less_than_total(self):
         """
         7. version expired
             7.1 imported cert is less than exported cert due to expired cert cannot be import
@@ -707,7 +713,9 @@ class TestCertReportStats:
                 - is_expired = true
         """
 
-        config.export_only = True
+        export_importer = ExportImporter(config)
+        run_context = export_importer.run_context
+        config.export_only = False
 
         cert_policy = Mock()
         cert_policy.exportable = True
@@ -775,6 +783,12 @@ class TestCertReportStats:
         key_vault_secret = Mock()
         key_vault_secret.value = 'I am a secret'
 
+        run_context.dest_vault = DestinationVault('')
+        run_context.dest_vault.cert_names = []
+        run_context.dest_vault.deleted_cert_names = []
+        run_context.dest_vault.secret_names = []
+        run_context.dest_vault.deleted_secret_names = []
+
 
         def yield_version(cert_name):
             if cert_name == 'secret_1':
@@ -789,25 +803,38 @@ class TestCertReportStats:
         with patch("azure.keyvault.certificates.CertificateClient.list_properties_of_certificates", return_value=[]):
             with patch("azure.keyvault.certificates.CertificateClient.get_certificate_policy", return_value = cert_policy):
                 with patch("azure.keyvault.certificates.CertificateClient.list_properties_of_certificate_versions") as cert_client_list_versions:
-                    # patch akv secret api
+                    # ignore dest vault list cert names
+                    with patch('src.export_import.ExportImporter.export_from_dest_vault'):
+                        # patch akv secret api
                         with patch("azure.keyvault.secrets.SecretClient.list_properties_of_secrets", return_value=[secret_1, secret_2]):
                             with patch("azure.keyvault.secrets.SecretClient.list_properties_of_secret_versions") as secret_client_list_versions:
                                 with patch("azure.keyvault.secrets.SecretClient.get_secret", return_value=key_vault_secret):
-                                    
-                                    secret_client_list_versions.side_effect = yield_version
-                                    
-                                    export_importer.run()
+                                    with patch("azure.keyvault.secrets.SecretClient.set_secret"):
 
-                                    assert run_context.total_secrets == run_context.total_exported_secrets
+                                        secret_client_list_versions.side_effect = yield_version
+                                        
+                                        export_importer.run()
 
-                                    assert len([x for x in run_context.src_vault.secrets if x.is_exported]) == 2
+                                        assert run_context.total_secrets == run_context.total_exported_secrets
 
-                                    for x in run_context.src_vault.secrets:
-                                        assert len([x for x in x.versions if x.is_exported]) == 2
+                                        assert len([x for x in run_context.src_vault.secrets if x.is_exported]) == 2
 
-                                        for v in x.versions:
-                                            assert v.is_exported
-                                            assert v.is_imported
+                                        for x in run_context.src_vault.secrets:
+                                            assert len([x for x in x.versions if x.is_exported]) == 1
+
+                                            for v in x.versions:
+                                                if v.version == 'version_1_1':
+                                                    assert v.is_expired
+                                                    assert not v.is_exported
+                                                    assert not v.is_imported
+                                                elif v.version == 'version_2_2':
+                                                    assert v.is_expired
+                                                    assert not v.is_exported
+                                                    assert not v.is_imported
+                                                else:
+                                                    assert not v.is_expired
+                                                    assert v.is_exported
+                                                    assert v.is_imported
                                                 
 
 
@@ -820,7 +847,9 @@ class TestCertReportStats:
                 - is_exported = true
         """
 
-        config.export_only = True
+        export_importer = ExportImporter(config)
+        run_context = export_importer.run_context
+        config.export_only = False
 
         cert_policy = Mock()
         cert_policy.exportable = True
@@ -836,6 +865,7 @@ class TestCertReportStats:
         secret_1.is_exported = False
         secret_1.is_imported = False
 
+
         secret_2 = Mock()
         secret_2.name = 'secret_2'
         secret_2.enabled = True
@@ -843,11 +873,12 @@ class TestCertReportStats:
         secret_2.is_exported = False
         secret_2.is_imported = False
 
+
         version_1_1 = Mock()
         version_1_1.name = 'version_1_1'
         version_1_1.enabled = True
         version_1_1.version = 'version_1_1'
-        version_1_1.expires_on = datetime(2026,10,1)
+        version_1_1.expires_on = datetime(2027,10,1)
         version_1_1.created_on = datetime(2024,1,1, 1, 0, 0)
         version_1_1.content_type = None
         version_1_1.is_exported = False
@@ -857,7 +888,7 @@ class TestCertReportStats:
         version_1_2.name = 'version_1_2'
         version_1_2.enabled = True
         version_1_2.version = 'version_1_2'
-        version_1_2.expires_on = datetime(2026,10,1)
+        version_1_2.expires_on = datetime(2027,10,1)
         version_1_2.created_on = datetime(2024,1,1, 1, 0, 0)
         version_1_2.content_type = None
         version_1_2.is_exported = False
@@ -867,7 +898,7 @@ class TestCertReportStats:
         version_2_1.name = 'version_2_1'
         version_2_1.enabled = True
         version_2_1.version = 'version_2_1'
-        version_2_1.expires_on = datetime(2026,10,1)
+        version_2_1.expires_on = datetime(2027,10,1)
         version_2_1.created_on = datetime(2024,1,1, 2, 0, 0)
         version_2_1.content_type = ''
         version_2_1.is_exported = False
@@ -877,7 +908,7 @@ class TestCertReportStats:
         version_2_2.name = 'version_2_2'
         version_2_2.enabled = True
         version_2_2.version = 'version_2_2'
-        version_2_2.expires_on = datetime(2026,10,1)
+        version_2_2.expires_on = datetime(2027,10,1)
         version_2_2.created_on = datetime(2024,1,1, 2, 0, 0)
         version_2_2.content_type = ''
         version_2_2.is_exported = False
@@ -885,6 +916,12 @@ class TestCertReportStats:
         
         key_vault_secret = Mock()
         key_vault_secret.value = 'I am a secret'
+
+        run_context.dest_vault = DestinationVault('')
+        run_context.dest_vault.cert_names = []
+        run_context.dest_vault.deleted_cert_names = []
+        run_context.dest_vault.secret_names = []
+        run_context.dest_vault.deleted_secret_names = []
 
 
         def yield_version(cert_name):
@@ -900,35 +937,41 @@ class TestCertReportStats:
         with patch("azure.keyvault.certificates.CertificateClient.list_properties_of_certificates", return_value=[]):
             with patch("azure.keyvault.certificates.CertificateClient.get_certificate_policy", return_value = cert_policy):
                 with patch("azure.keyvault.certificates.CertificateClient.list_properties_of_certificate_versions") as cert_client_list_versions:
-                    # patch akv secret api
+                    # ignore dest vault list cert names
+                    with patch('src.export_import.ExportImporter.export_from_dest_vault'):
+                        # patch akv secret api
                         with patch("azure.keyvault.secrets.SecretClient.list_properties_of_secrets", return_value=[secret_1, secret_2]):
                             with patch("azure.keyvault.secrets.SecretClient.list_properties_of_secret_versions") as secret_client_list_versions:
                                 with patch("azure.keyvault.secrets.SecretClient.get_secret", return_value=key_vault_secret):
-                                    
-                                    secret_client_list_versions.side_effect = yield_version
-                                    
-                                    export_importer.run()
+                                    with patch("azure.keyvault.secrets.SecretClient.set_secret"):
 
-                                    assert run_context.total_secrets == run_context.total_exported_secrets
+                                        secret_client_list_versions.side_effect = yield_version
+                                        
+                                        export_importer.run()
 
-                                    assert len([x for x in run_context.src_vault.secrets if x.is_exported]) == 2
+                                        assert run_context.total_secrets == run_context.total_exported_secrets
 
-                                    for x in run_context.src_vault.secrets:
-                                        assert len([x for x in x.versions if x.is_exported]) == 2
+                                        assert len([x for x in run_context.src_vault.secrets if x.is_exported]) == 2
+
+                                        for x in run_context.src_vault.secrets:
+                                            assert len([x for x in x.versions if x.is_exported]) == 2
+
+                                            for v in x.versions:
+                                                assert not v.is_expired
+                                                assert v.is_exported
+                                                assert v.is_imported
 
 
 
 
-    def test_9_ignore_secrets_created_by_cert_as_private_keys(self):
+    def test_9_ignore_secrets_created_by_cert_to_store_private_keys(self):
             """
-            8. all versions are imported
-                4.1 total versions = exported = imported versions
-                4.2 matrix flags are correctly set
-                    - is_imported = true
-                    - is_exported = true
+            9. ignore secrets created by cert to store private key
             """
 
-            config.export_only = True
+            export_importer = ExportImporter(config)
+            run_context = export_importer.run_context
+            config.export_only = False
 
             cert_policy = Mock()
             cert_policy.exportable = True
@@ -951,7 +994,15 @@ class TestCertReportStats:
             secret_2.tags = {}
             secret_2.is_exported = False
             secret_2.is_imported = False
-            secret_2.content_type = None
+            secret_2.content_type = 'application/x-pkcs12'
+
+            secret_3 = Mock()
+            secret_3.name = 'secret_3'
+            secret_3.enabled = True
+            secret_3.tags = {}
+            secret_3.is_exported = False
+            secret_3.is_imported = False
+            secret_3.content_type = None
 
             version_1_1 = Mock()
             version_1_1.name = 'version_1_1'
@@ -996,6 +1047,12 @@ class TestCertReportStats:
             key_vault_secret = Mock()
             key_vault_secret.value = 'I am a secret'
 
+            run_context.dest_vault = DestinationVault('')
+            run_context.dest_vault.cert_names = []
+            run_context.dest_vault.deleted_cert_names = []
+            run_context.dest_vault.secret_names = []
+            run_context.dest_vault.deleted_secret_names = []
+
 
             def yield_version(cert_name):
                 if cert_name == 'secret_1':
@@ -1010,19 +1067,22 @@ class TestCertReportStats:
             with patch("azure.keyvault.certificates.CertificateClient.list_properties_of_certificates", return_value=[]):
                 with patch("azure.keyvault.certificates.CertificateClient.get_certificate_policy", return_value = cert_policy):
                     with patch("azure.keyvault.certificates.CertificateClient.list_properties_of_certificate_versions") as cert_client_list_versions:
+                        # ignore dest vault list cert names
+                        with patch('src.export_import.ExportImporter.export_from_dest_vault'):
                         # patch akv secret api
-                            with patch("azure.keyvault.secrets.SecretClient.list_properties_of_secrets", return_value=[secret_1, secret_2]):
+                            with patch("azure.keyvault.secrets.SecretClient.list_properties_of_secrets", return_value=[secret_1, secret_2, secret_3]):
                                 with patch("azure.keyvault.secrets.SecretClient.list_properties_of_secret_versions") as secret_client_list_versions:
                                     with patch("azure.keyvault.secrets.SecretClient.get_secret", return_value=key_vault_secret):
-                                        
-                                        secret_client_list_versions.side_effect = yield_version
-                                        
-                                        export_importer.run()
+                                        with patch("azure.keyvault.secrets.SecretClient.set_secret"):
 
-                                        assert run_context.total_secrets == run_context.total_exported_secrets
+                                            secret_client_list_versions.side_effect = yield_version
+                                            
+                                            export_importer.run()
 
-                                        assert len([x for x in run_context.src_vault.secrets if x.is_exported]) == 1
-
+                                            assert run_context.total_exported_secrets == 1
+                                            assert run_context.total_secrets == 1
+                                            assert run_context.total_secrets == run_context.total_exported_secrets
+                                            
                                 
 
 
