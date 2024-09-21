@@ -1,0 +1,112 @@
+<mxfile host="Electron" modified="2024-09-21T04:05:18.121Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/22.1.2 Chrome/114.0.5735.289 Electron/25.9.4 Safari/537.36" etag="kmTg-AbVDJeVmuGeOfq5" version="22.1.2" type="device">
+  <diagram name="Page-1" id="pUesMWvT68EEQtZl_DhQ">
+    <mxGraphModel dx="1018" dy="759" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="asj7dThpUxnh-IMiJ36D-5" value="" style="shape=image;verticalLabelPosition=bottom;labelBackgroundColor=default;verticalAlign=top;aspect=fixed;imageAspect=0;image=https://icons.veryicon.com/png/o/miscellaneous/network-security-computer/command-line.png;labelPosition=left;align=right;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="340" y="340" width="40" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="asj7dThpUxnh-IMiJ36D-3" value="" style="image;sketch=0;aspect=fixed;html=1;points=[];align=center;fontSize=11;image=img/lib/mscae/Key_Vaults.svg;" vertex="1" parent="1">
+          <mxGeometry x="218" y="243" width="38.4" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="asj7dThpUxnh-IMiJ36D-6" value="" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=11;image=img/lib/azure2/identity/Azure_AD_B2C.svg;" vertex="1" parent="1">
+          <mxGeometry x="462" y="203" width="43.13" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="asj7dThpUxnh-IMiJ36D-10" value="" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=11;image=img/lib/azure2/identity/Azure_AD_B2C.svg;" vertex="1" parent="1">
+          <mxGeometry x="210" y="201" width="43.13" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="asj7dThpUxnh-IMiJ36D-7" value="" style="image;sketch=0;aspect=fixed;html=1;points=[];align=center;fontSize=11;image=img/lib/mscae/Key_Vaults.svg;" vertex="1" parent="1">
+          <mxGeometry x="452" y="233" width="38.4" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="asj7dThpUxnh-IMiJ36D-11" value="" style="curved=1;endArrow=classic;html=1;rounded=0;entryX=0.486;entryY=0.983;entryDx=0;entryDy=0;strokeColor=default;entryPerimeter=0;exitX=0;exitY=0.5;exitDx=0;exitDy=0;fontSize=11;" edge="1" parent="1" source="asj7dThpUxnh-IMiJ36D-5" target="asj7dThpUxnh-IMiJ36D-3">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="160" y="330" as="sourcePoint" />
+            <mxPoint x="240" y="410" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="270" y="370" />
+              <mxPoint x="250" y="340" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="asj7dThpUxnh-IMiJ36D-12" value="export secrets &amp;amp; certs" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="202" y="329" width="60" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="asj7dThpUxnh-IMiJ36D-14" value="" style="curved=1;endArrow=classic;html=1;rounded=0;entryX=0.59;entryY=0.983;entryDx=0;entryDy=0;strokeColor=default;entryPerimeter=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;fontSize=11;" edge="1" parent="1" source="asj7dThpUxnh-IMiJ36D-5" target="asj7dThpUxnh-IMiJ36D-7">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="530" y="391" as="sourcePoint" />
+            <mxPoint x="471" y="330" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="450" y="380" />
+              <mxPoint x="470" y="340" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="asj7dThpUxnh-IMiJ36D-15" value="&amp;nbsp;export as files" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="365" y="407" width="60" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="asj7dThpUxnh-IMiJ36D-17" value="" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;fontSize=11;" edge="1" parent="1" source="asj7dThpUxnh-IMiJ36D-5" target="asj7dThpUxnh-IMiJ36D-19">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="170" y="530" as="sourcePoint" />
+            <mxPoint x="220" y="480" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="asj7dThpUxnh-IMiJ36D-19" value="local drive" style="sketch=0;pointerEvents=1;shadow=0;dashed=0;html=1;strokeColor=none;fillColor=#505050;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;outlineConnect=0;align=center;shape=mxgraph.office.devices.hard_disk;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="362" y="452" width="35" height="41" as="geometry" />
+        </mxCell>
+        <mxCell id="asj7dThpUxnh-IMiJ36D-20" value="import secrets &amp;amp; certs" style="text;html=1;strokeColor=none;fillColor=none;align=right;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="459" y="327" width="60" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="asj7dThpUxnh-IMiJ36D-21" value="tenant A" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="189" y="180" width="60" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="asj7dThpUxnh-IMiJ36D-23" value="" style="image;sketch=0;aspect=fixed;html=1;points=[];align=center;fontSize=11;image=img/lib/mscae/Key_Vaults.svg;" vertex="1" parent="1">
+          <mxGeometry x="252.13" y="193" width="38.4" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="asj7dThpUxnh-IMiJ36D-24" value="tenant B" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="479" y="181" width="60" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="asj7dThpUxnh-IMiJ36D-25" value="vault A.1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="171" y="248" width="60" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="asj7dThpUxnh-IMiJ36D-27" value="vault A.2" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="290.53" y="193" width="60" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="asj7dThpUxnh-IMiJ36D-30" value="" style="curved=1;endArrow=classic;html=1;rounded=0;entryX=0.925;entryY=0.792;entryDx=0;entryDy=0;strokeColor=default;entryPerimeter=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;fontSize=11;" edge="1" parent="1" source="asj7dThpUxnh-IMiJ36D-5" target="asj7dThpUxnh-IMiJ36D-23">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="350" y="370" as="sourcePoint" />
+            <mxPoint x="291" y="309" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="377" y="300" />
+              <mxPoint x="339" y="275" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="asj7dThpUxnh-IMiJ36D-31" value="azvaultcopy" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1267" y="1009" width="60" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="asj7dThpUxnh-IMiJ36D-33" value="import secrets &amp;amp; certs" style="text;html=1;strokeColor=none;fillColor=none;align=right;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="333" y="254" width="60" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="asj7dThpUxnh-IMiJ36D-36" value="vault B" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="492" y="245" width="60" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="asj7dThpUxnh-IMiJ36D-40" value="" style="group" vertex="1" connectable="0" parent="1">
+          <mxGeometry x="284" y="376" width="77" height="47" as="geometry" />
+        </mxCell>
+        <mxCell id="asj7dThpUxnh-IMiJ36D-37" value="" style="image;sketch=0;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/mscae/Managed_Identities.svg;" vertex="1" parent="asj7dThpUxnh-IMiJ36D-40">
+          <mxGeometry x="42.074320987654325" width="22.914716981132077" height="30.150943396226417" as="geometry" />
+        </mxCell>
+        <mxCell id="asj7dThpUxnh-IMiJ36D-38" value="" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/azure2/identity/Users.svg;" vertex="1" parent="asj7dThpUxnh-IMiJ36D-40">
+          <mxGeometry x="14.25925925925926" width="25.947547169811322" height="28.37735849056604" as="geometry" />
+        </mxCell>
+        <mxCell id="asj7dThpUxnh-IMiJ36D-39" value="&lt;span style=&quot;color: rgb(0, 0, 0); font-family: Helvetica; font-size: 12px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial; float: none; display: inline !important;&quot;&gt;az user/spn&lt;br&gt;identity&lt;br&gt;&lt;/span&gt;" style="text;whiteSpace=wrap;html=1;align=center;" vertex="1" parent="asj7dThpUxnh-IMiJ36D-40">
+          <mxGeometry y="21.71698113207547" width="77" height="21.28301886792453" as="geometry" />
+        </mxCell>
+        <mxCell id="asj7dThpUxnh-IMiJ36D-42" value="azvaultcopy" style="text;html=1;strokeColor=none;fillColor=none;align=right;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="373" y="368" width="60" height="30" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
