@@ -1,20 +1,28 @@
 # AzVaultCopy
-Cli tool to export and import secrets and certs from one Key Vault to another on same Entra Tenants or across 2 different Tenants
+Cli tool to export and import secrets and certs from one Key Vault to another, either on same Entra Tenant or across 2 different Tenants  
+
+![image](https://github.com/user-attachments/assets/922299fd-5d2b-4425-ad93-5a834a69cca9)
+
 
 <br >  
 
 ## Features
-* Python 3.11 cmdline tool
-* exports not only latest objects, but also all older versions that is enabled, Exportable and not expired
-* Displays a detailed report of export or import statuses
-* supports exporting all versions of certs and secrets on local drive, while importing to destination vault
-* supports exporting objects to local drive only and skip importing to destination vault
+* exports not only latest objects, but also all older versions
+* Displays a [detailed report](#report) of export or import statuses
+* save to local while import - supports exporting all versions of certs and secrets onto local drive, while importing to destination vault
+* export only -[ supports exporting objects to local drive only and skip importing to destination vault
 
+## Limitations & Unsupported Scenario
+objects =  certs and secrets  
+* Windows only
+* cannot import expired objects
+* cannot export disabled objects
+* Cert that is marked Not Exportable cannot be imported due to missing private-key.
 <br >
 
 ## Usage  
 
-1. <code>pip install azvaultcopy</code>  
+1. <code>pip install [azvaultcopy](https://pypi.org/project/azvaultcopy/)</code>  
 
 2. Authentication (repeat 2.1 and 2.2 if destination vault is in a different Entra Tenant)
 
@@ -30,44 +38,18 @@ Cli tool to export and import secrets and certs from one Key Vault to another on
     * Key Vault Secrets User
 
 3. <code>azvaultcopy copypaste --src_vault {name of source key vault} --dest_vault {name of dest key vault} --src_token {source vault tenant access token} --dest_token {dest vault tenant access token}</code> 
-<code>
-Usage: azvaultcopy copypaste [OPTIONS]
 
-Options:
-  -sv, --src_vault TEXT           source vault name
-  -dv, --dest_vault TEXT          destination vault name
-  -st, --src_token TEXT           access token of source Entra Tenant to
-                                  access source vault.
-
-                                  az login --tenant {tenant id}
-
-                                  az account get-access-token --scope
-                                  https://vault.azure.net/.default --query
-                                  "accessToken"
-  -dt, --dest_token TEXT          access token of destination Entra Tenant to
-                                  access source vault.
-
-                                  az login --tenant {tenant id}
-
-                                  az account get-access-token --scope
-                                  https://vault.azure.net/.default --query
-                                  "accessToken"
-  -ed, --export_dir TEXT          certs and secrets are save to this directory
-                                  while importing to dest vault
-  -eo, --export_only              all certs and secrets are save to local
-                                  drive, WITHOUT importing to dest vault
-  -ii, --no_import_if_dest_exist  any cert or secret with same name at dest
-                                  vault will not be imported
-
-                                  * When importing an object with the same
-                                  name, vault will create a new version.
-  -tz, --timezone TEXT            Python timezone name to localize datetime
-
-                                  https://en.wikipedia.org/wiki/List_of_tz_dat
-                                  abase_time_zones
-  --help                          Show this message and exit.
-</code>
-
+|args | type | description |
+|:-----------------|:----|:-----------|
+| -sv, --src_vault  | TEXT | source vault name |
+| -dv, --dest_vault | TEXT | destination vault name |
+| -st, --src_token  | TEXT | access token of source Entra Tenant to access source vault |
+| -dt, --dest_token | TEXT  | TEXT | access token of destination Entra Tenant to access source vault. |
+| -ed, --export_dir | TEXT  | TEXT | certs and secrets are save to this directory |
+| -eo, --export_only  | TEXT  | TEXT | while importing to dest vault all certs and secrets are save to local drive, without importing to dest vault |
+| -ii, --no_import_if_dest_exist | TEXT  | any cert or secret with same name at dest vault will not be imported |
+| --help  |   | help |
+                                  
 <br >
 
 ## Report  
